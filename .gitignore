@@ -1,0 +1,6 @@
+node_modules/
+.env
+backend/storage/
+coverage/
+backend/eval/results/
+frontend/dist/

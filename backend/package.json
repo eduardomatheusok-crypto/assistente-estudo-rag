@@ -1,0 +1,33 @@
+{
+  "name": "copy-notebook-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch src/server.ts",
+    "start": "node --env-file-if-exists=.env src/server.ts",
+    "migrate": "node --env-file-if-exists=.env src/db/migrate.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests/unit",
+    "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run tests/integration --no-file-parallelism",
+    "test:watch": "vitest tests/unit",
+    "eval": "node --env-file-if-exists=.env eval/run-rag-eval.ts",
+    "eval:highlights": "node --env-file-if-exists=.env eval/run-highlight-eval.ts"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^10.1.7",
+    "fastify": "^5.12.8",
+    "pdfjs-dist": "^6.5.438",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "name": "calculo-exemplo",
+  "description": "Grifos esperados na apostila de Cálculo I e no resumo de Biologia. A tarefa de datas na apostila de Cálculo espera nenhum grifo (mede grifos indevidos).",
+  "documents": [
+    { "id": "calculo", "file": "calculo.md", "title": "Apostila de Cálculo I" },
+    { "id": "biologia", "file": "biologia.md", "title": "Resumo de Biologia Celular" }
+  ],
+  "tasks": [
+    {
+      "document": "calculo",
+      "criterion": "definicoes",
+      "expected": [
+        "O limite de uma função descreve o valor do qual f(x) se aproxima quando x se aproxima de um ponto a.",
+        "Os limites laterais analisam a aproximação por apenas um dos lados.",
+        "Uma função f é contínua em um ponto a quando três condições são satisfeitas: f(a) está definida, o limite de f(x) quando x tende a a existe, e esse limite é igual a f(a).",
+        "A derivada de uma função mede a taxa de variação instantânea da função em um ponto.",
+        "Formalmente, a derivada é definida como o limite da razão incremental [f(a + h) - f(a)] / h quando h tende a zero.",
+        "Os pontos críticos de uma função são os pontos onde a derivada é igual a zero ou não existe.",
+        "A integral definida de uma função contínua em um intervalo [a, b] calcula a área sob a curva do gráfico entre a e b, contando com sinal negativo as regiões abaixo do eixo x.",
+        "A integral indefinida, ou antiderivada, é uma função cuja derivada é a função original."
+      ]
+    },
+    {
+      "document": "calculo",
+      "criterion": "formulas",
+      "expected": [
+        "Escrevemos lim f(x) = L quando x tende a a.",
+        "Formalmente, a derivada é definida como o limite da razão incremental [f(a + h) - f(a)] / h quando h tende a zero.",
+        "A regra da potência diz que a derivada de x elevado a n é n vezes x elevado a (n - 1).",
+        "Por exemplo, a derivada de x² é 2x.",
+        "A regra do produto diz que a derivada de f(x)g(x) é f'(x)g(x) + f(x)g'(x).",
+        "a derivada de f(g(x)) é f'(g(x)) multiplicado por g'(x).",
+        "basta encontrar uma antiderivada F e calcular F(b) - F(a)."
+      ]
+    },
+    {
+      "document": "calculo",
+      "criterion": "exemplos",
+      "expected": [
+        "Na física, se s(t) é a posição de um objeto, a derivada s'(t) é a sua velocidade.",
+        "Por exemplo, a derivada de x² é 2x.",
+        "Polinômios são contínuos em todos os números reais."
+      ]
+    },
+    {
+      "document": "calculo",
+      "criterion": "datas",
+      "expected": []
+    },
+    {
+      "document": "biologia",
+      "criterion": "definicoes",
+      "expected": [
+        "A fotossíntese é o processo pelo qual plantas, algas e algumas bactérias produzem glicose a partir de gás carbônico e água, usando a energia da luz.",
+        "A respiração celular é o processo que libera a energia armazenada na glicose.",
+        "A mitocôndria é a organela responsável pela maior parte da produção de ATP na célula, por meio da respiração celular aeróbica."
+      ]
+    },
+    {
+      "document": "biologia",
+      "custom": {
+        "label": "Organelas",
+        "instruction": "Frases que dizem onde algo acontece na célula ou qual organela faz cada função."
+      },
+      "expected": [
+        "Nas plantas, a fotossíntese ocorre nos cloroplastos, organelas que contêm o pigmento clorofila.",
+        "A mitocôndria é a organela responsável pela maior parte da produção de ATP na célula, por meio da respiração celular aeróbica."
+      ]
+    }
+  ]
+}

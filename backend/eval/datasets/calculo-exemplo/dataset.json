@@ -1,0 +1,126 @@
+{
+  "name": "calculo-exemplo",
+  "description": "Dataset de exemplo: apostila de Cálculo I e um resumo de Biologia como distrator. 10 perguntas com resposta no material e 4 sem.",
+  "documents": [
+    { "id": "calculo", "file": "calculo.md", "title": "Apostila de Cálculo I" },
+    { "id": "biologia", "file": "biologia.md", "title": "Resumo de Biologia Celular" }
+  ],
+  "questions": [
+    {
+      "id": "limite",
+      "question": "O que é o limite de uma função?",
+      "answerable": true,
+      "referenceAnswer": "É o valor do qual f(x) se aproxima quando x se aproxima de um ponto a; pode existir mesmo que a função não esteja definida em a.",
+      "evidence": [
+        { "document": "calculo", "text": "O limite de uma função descreve o valor do qual f(x) se aproxima quando x se aproxima de um ponto a." }
+      ]
+    },
+    {
+      "id": "limites-laterais",
+      "question": "Em que condição o limite existe, considerando os limites laterais?",
+      "answerable": true,
+      "referenceAnswer": "O limite existe se, e somente se, os limites laterais à esquerda e à direita existem e são iguais.",
+      "evidence": [
+        { "document": "calculo", "text": "O limite existe se, e somente se, os limites laterais à esquerda e à direita existem e são iguais." }
+      ]
+    },
+    {
+      "id": "continuidade",
+      "question": "Quais condições uma função precisa satisfazer para ser contínua em um ponto?",
+      "answerable": true,
+      "referenceAnswer": "f(a) precisa estar definida, o limite de f(x) quando x tende a a precisa existir, e esse limite deve ser igual a f(a).",
+      "evidence": [
+        { "document": "calculo", "text": "f(a) está definida, o limite de f(x) quando x tende a a existe, e esse limite é igual a f(a)." }
+      ]
+    },
+    {
+      "id": "derivada",
+      "question": "O que a derivada mede e qual é o seu significado geométrico?",
+      "answerable": true,
+      "referenceAnswer": "Mede a taxa de variação instantânea da função em um ponto; geometricamente, é a inclinação da reta tangente ao gráfico.",
+      "evidence": [
+        { "document": "calculo", "text": "A derivada de uma função mede a taxa de variação instantânea da função em um ponto." },
+        { "document": "calculo", "text": "Geometricamente, a derivada é a inclinação da reta tangente ao gráfico da função naquele ponto." }
+      ]
+    },
+    {
+      "id": "velocidade",
+      "question": "Como a derivada aparece na física quando falamos do movimento de um objeto?",
+      "answerable": true,
+      "referenceAnswer": "Se s(t) é a posição do objeto, a derivada s'(t) é a sua velocidade.",
+      "evidence": [
+        { "document": "calculo", "text": "se s(t) é a posição de um objeto, a derivada s'(t) é a sua velocidade." }
+      ]
+    },
+    {
+      "id": "regra-cadeia",
+      "question": "Como derivar uma função composta?",
+      "answerable": true,
+      "referenceAnswer": "Pela regra da cadeia: a derivada de f(g(x)) é f'(g(x)) multiplicado por g'(x).",
+      "evidence": [
+        { "document": "calculo", "text": "a derivada de f(g(x)) é f'(g(x)) multiplicado por g'(x)." }
+      ]
+    },
+    {
+      "id": "maximo",
+      "question": "Como encontrar o maior valor de uma função perto de um ponto?",
+      "answerable": true,
+      "referenceAnswer": "Os máximos locais ocorrem em pontos críticos, onde a derivada é zero ou não existe; pelo teste da segunda derivada, se ela é negativa o ponto é um máximo local.",
+      "evidence": [
+        { "document": "calculo", "text": "Os valores máximos e mínimos locais de uma função derivável ocorrem em pontos críticos." },
+        { "document": "calculo", "text": "se é negativa, é um máximo local." }
+      ]
+    },
+    {
+      "id": "derivada-vs-integral",
+      "question": "Qual é a relação entre derivadas e integrais e como isso ajuda a calcular uma integral definida?",
+      "answerable": true,
+      "referenceAnswer": "O Teorema Fundamental do Cálculo mostra que são operações inversas; para calcular a integral definida de f entre a e b, encontra-se uma antiderivada F e calcula-se F(b) - F(a).",
+      "evidence": [
+        { "document": "calculo", "text": "O Teorema Fundamental do Cálculo relaciona derivadas e integrais, mostrando que são operações inversas." },
+        { "document": "calculo", "text": "basta encontrar uma antiderivada F e calcular F(b) - F(a)." }
+      ]
+    },
+    {
+      "id": "fotossintese",
+      "question": "Em qual parte da célula vegetal acontece a fotossíntese?",
+      "answerable": true,
+      "referenceAnswer": "Nos cloroplastos, organelas que contêm clorofila.",
+      "evidence": [
+        { "document": "biologia", "text": "Nas plantas, a fotossíntese ocorre nos cloroplastos, organelas que contêm o pigmento clorofila." }
+      ]
+    },
+    {
+      "id": "mitocondria",
+      "question": "Por que a mitocôndria é chamada de usina de energia da célula?",
+      "answerable": true,
+      "referenceAnswer": "Porque é responsável pela maior parte da produção de ATP da célula, por meio da respiração celular aeróbica.",
+      "evidence": [
+        { "document": "biologia", "text": "A mitocôndria é a organela responsável pela maior parte da produção de ATP na célula, por meio da respiração celular aeróbica." }
+      ]
+    },
+    {
+      "id": "inventor",
+      "question": "Quem inventou o cálculo diferencial?",
+      "answerable": false,
+      "note": "A apostila não fala da história do cálculo."
+    },
+    {
+      "id": "derivada-seno",
+      "question": "Qual é a derivada de sen(x)?",
+      "answerable": false,
+      "note": "Tema próximo ao material, mas a apostila não apresenta derivadas trigonométricas. Testa se o modelo usa conhecimento próprio."
+    },
+    {
+      "id": "revolucao",
+      "question": "Em que ano começou a Revolução Francesa?",
+      "answerable": false
+    },
+    {
+      "id": "cromossomos",
+      "question": "Quantos cromossomos tem uma célula humana?",
+      "answerable": false,
+      "note": "Tema próximo ao resumo de Biologia, mas sem a informação."
+    }
+  ]
+}
