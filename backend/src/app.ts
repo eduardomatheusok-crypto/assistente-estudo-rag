@@ -22,18 +22,21 @@ import { DocumentRepository } from './repositories/document-repository.ts';
 import { HighlightRepository } from './repositories/highlight-repository.ts';
 import { LlmCallRepository } from './repositories/llm-call-repository.ts';
 import { NotebookRepository } from './repositories/notebook-repository.ts';
+import { PracticeRepository } from './repositories/practice-repository.ts';
 import { QuestionRepository } from './repositories/question-repository.ts';
 import { SearchRepository } from './repositories/search-repository.ts';
 import { StepTimingRepository } from './repositories/step-timing-repository.ts';
 import { documentRoutes } from './routes/document-routes.ts';
 import { highlightRoutes } from './routes/highlight-routes.ts';
 import { notebookRoutes } from './routes/notebook-routes.ts';
+import { practiceRoutes } from './routes/practice-routes.ts';
 import { questionRoutes } from './routes/question-routes.ts';
 import { searchRoutes } from './routes/search-routes.ts';
 import { DocumentService } from './services/document-service.ts';
 import { ServiceError } from './services/errors.ts';
 import { HighlightService } from './services/highlight-service.ts';
 import { NotebookService } from './services/notebook-service.ts';
+import { PracticeService } from './services/practice-service.ts';
 import { QuestionService } from './services/question-service.ts';
 import { SearchService } from './services/search-service.ts';
 
@@ -150,11 +153,21 @@ export async function buildApp(
     logger: app.log,
   });
 
+  const practice = new PracticeService({
+    notebooks: notebookRepository,
+    practice: new PracticeRepository(db),
+    content: new ContentRepository(db),
+    llm,
+    timings,
+    onSinkError,
+  });
+
   notebookRoutes(app, notebooks);
   documentRoutes(app, documents);
   searchRoutes(app, search);
   questionRoutes(app, questions);
   highlightRoutes(app, highlights);
+  practiceRoutes(app, practice);
   app.get('/health', () => ({ ok: true }));
 
   return { app, documents, highlights };

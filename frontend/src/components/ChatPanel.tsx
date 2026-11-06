@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { api } from '../api/client.ts';
 import type { Citation, Question } from '../api/types.ts';
 import { splitAnswer } from '../lib/answer.ts';
@@ -6,10 +6,15 @@ import { splitAnswer } from '../lib/answer.ts';
 type Props = {
   notebookId: string;
   onOpenCitation: (citation: Citation) => void;
+  /** Topo do chat (objetivo + treinar meus erros). */
+  header: ReactNode;
+  /** "Treinar este assunto" a partir de uma resposta. */
+  onTrainQuestion: (questionId: string, mode: 'flashcards' | 'simulation') => void;
+  practiceBusy: boolean;
 };
 
 /** Perguntas ao material. Cada [S1] da resposta e cada citação abaixo dela abrem o trecho original. */
-export function ChatPanel({ notebookId, onOpenCitation }: Props) {
+export function ChatPanel({ notebookId, onOpenCitation, header, onTrainQuestion, practiceBusy }: Props) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState<string | null>(null);
@@ -45,6 +50,7 @@ export function ChatPanel({ notebookId, onOpenCitation }: Props) {
 
   return (
     <div className="chat">
+      {header}
       <div className="chat-log">
         {questions.length === 0 && !pending && (
           <p className="muted">Pergunte algo sobre os documentos deste caderno. As respostas usam só o material.</p>
@@ -75,6 +81,13 @@ export function ChatPanel({ notebookId, onOpenCitation }: Props) {
                     </li>
                   ))}
                 </ul>
+              )}
+              {q.status === 'answered' && q.citations.length > 0 && (
+                <div className="train-shortcuts">
+                  <span>Treinar este assunto:</span>
+                  <button disabled={practiceBusy} onClick={() => onTrainQuestion(q.id, 'flashcards')}>Flashcards</button>
+                  <button disabled={practiceBusy} onClick={() => onTrainQuestion(q.id, 'simulation')}>Simulação</button>
+                </div>
               )}
             </div>
           </article>

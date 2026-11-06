@@ -2,9 +2,14 @@ import type {
   CitationContext,
   Criterion,
   DocumentPage,
+  GoalType,
   Highlight,
   HighlightRun,
+  ItemSource,
   Notebook,
+  PageLocation,
+  PracticeSession,
+  Priority,
   Question,
   StudyDocument,
 } from './types.ts';
@@ -66,4 +71,19 @@ export const api = {
     request<HighlightRun[]>(`/documents/${documentId}/highlight-runs`, json('POST', { criterionIds })),
   getRun: (id: string) => request<HighlightRun>(`/highlight-runs/${id}`),
   listHighlights: (documentId: string) => request<Highlight[]>(`/documents/${documentId}/highlights`),
+
+  getProfile: (notebookId: string) => request<{ goalType: GoalType | null }>(`/notebooks/${notebookId}/profile`),
+  setProfile: (notebookId: string, goalType: GoalType) =>
+    request<{ goalType: GoalType }>(`/notebooks/${notebookId}/profile`, json('PUT', { goalType })),
+  startPractice: (
+    notebookId: string,
+    body: { mode: 'simulation' | 'flashcards'; focus: 'general' | 'errors' | 'question'; questionId?: string },
+  ) => request<PracticeSession>(`/notebooks/${notebookId}/practice-sessions`, json('POST', body)),
+  answer: (sessionId: string, body: { itemId: string; option?: number; text?: string }) =>
+    request<PracticeSession>(`/practice-sessions/${sessionId}/answers`, json('POST', body)),
+  review: (sessionId: string, itemId: string, correct: boolean) =>
+    request<PracticeSession>(`/practice-sessions/${sessionId}/reviews`, json('POST', { itemId, correct })),
+  finishPractice: (sessionId: string) => request<PracticeSession>(`/practice-sessions/${sessionId}/finish`, { method: 'POST' }),
+  priorities: (notebookId: string) => request<Priority[]>(`/notebooks/${notebookId}/priorities`),
+  itemSource: (itemId: string) => request<ItemSource & { locations: PageLocation[] }>(`/practice-items/${itemId}/source`),
 };

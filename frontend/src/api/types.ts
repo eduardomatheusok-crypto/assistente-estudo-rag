@@ -100,3 +100,56 @@ export type Highlight = {
   docCharEnd: number;
   locations: PageLocation[];
 };
+
+export type GoalType = 'prova' | 'entrevista';
+
+export type ItemSource = {
+  documentId: string;
+  documentTitle: string;
+  pageNumber: number;
+  quote: string;
+  docCharStart: number;
+  docCharEnd: number;
+};
+
+export type Attempt = {
+  itemId: string;
+  answerText: string | null;
+  chosenOption: number | null;
+  correct: boolean;
+  score: number;
+  feedback: string | null;
+  evaluatedBy: 'code' | 'llm' | 'self';
+};
+
+export type PracticeItem = {
+  id: string;
+  kind: 'mcq' | 'open';
+  topic: string;
+  prompt: string;
+  options: string[] | null;
+  source: ItemSource;
+  attempt: Attempt | null;
+  correctOption: number | null;
+  referenceAnswer: string | null;
+};
+
+export type PracticeSession = {
+  id: string;
+  goalType: GoalType;
+  mode: 'simulation' | 'flashcards';
+  focus: 'general' | 'errors' | 'question';
+  status: 'active' | 'finished';
+  persona: 'examinador' | 'entrevistador';
+  items: PracticeItem[];
+  summary: { answered: number; total: number; correct: number; averageScore: number | null };
+};
+
+export type Priority = {
+  topic: string;
+  attempts: number;
+  errors: number;
+  errorRate: number;
+  justification: string;
+  source: (ItemSource & { itemId: string }) | null;
+};
