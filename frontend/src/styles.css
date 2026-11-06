@@ -178,7 +178,7 @@ h3 { font-size: 13px; margin: 0 0 8px; }
 .highlight-item { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 2px; border-color: transparent; background: var(--bg); }
 .highlight-item small { color: var(--muted); }
 
-/* Barra do documento e gaveta de grifos */
+/* Barra do documento */
 .main-toolbar {
   display: flex;
   align-items: center;
@@ -188,54 +188,8 @@ h3 { font-size: 13px; margin: 0 0 8px; }
   background: var(--surface);
 }
 .main-toolbar strong { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.main-toolbar button.active { border-color: var(--accent); background: #eef2fd; }
 .viewer-body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.drawer {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 360px;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  box-shadow: -4px 0 16px rgb(0 0 0 / 0.08);
-  overflow-y: auto;
-  z-index: 5;
-}
 
-/* Topo do chat: objetivo + treinar meus erros */
-.practice-menu {
-  position: relative;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-}
-.practice-menu .goal { display: flex; align-items: center; gap: 6px; flex: 1; color: var(--muted); }
-.practice-menu select { border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 8px; background: var(--surface); }
-.practice-menu select.attention { border-color: #e0a100; background: #fff8e1; }
-.dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 14px;
-  width: 340px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
-  padding: 12px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.dropdown-actions { display: flex; gap: 6px; }
-.dropdown-actions button { flex: 1; }
-.dropdown hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; width: 100%; }
-.priorities { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
-.priorities li { display: flex; flex-direction: column; gap: 2px; }
-.priorities small { color: var(--muted); }
 button.link, .source-link { border: none; background: none; padding: 0; color: var(--accent); text-align: left; font-size: 12px; }
 
 .train-shortcuts { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
@@ -270,7 +224,6 @@ button.link, .source-link { border: none; background: none; padding: 0; color: v
 .feedback.right { background: #e8f5e9; }
 .feedback.wrong { background: #fdecea; }
 .my-answer { margin: 0; padding: 10px 12px; border-left: 3px solid var(--border); background: var(--bg); white-space: pre-wrap; }
-.card-back { background: #fffbe6; border: 1px solid #f0e2a8; border-radius: var(--radius); padding: 14px; line-height: 1.5; }
 .review-buttons { display: flex; gap: 8px; }
 .review-buttons button { flex: 1; padding: 10px; }
 .wrong-btn { border-color: var(--danger); color: var(--danger); }
@@ -279,3 +232,56 @@ button.link, .source-link { border: none; background: none; padding: 0; color: v
 .summary-list li { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: start; }
 .summary-list li.right > span:first-child { color: #2e7d32; }
 .summary-list li.wrong > span:first-child { color: var(--danger); }
+
+/* Topo do chat: objetivo */
+.goal-bar { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.goal { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.goal select { border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 8px; background: var(--surface); }
+.goal select.attention { border-color: #e0a100; background: #fff8e1; }
+
+/* Flashcards estilo Gemini: frente escura, verso azul, vira com clique */
+.deck { width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.flashcard-3d {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 520px;
+  padding: 0;
+  border: none;
+  background: none;
+  perspective: 1400px;
+  cursor: pointer;
+}
+.flashcard-3d .face {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px;
+  backface-visibility: hidden;
+  transition: transform 0.5s ease;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+}
+.flashcard-3d .front { background: #1c1c1e; color: #f2f2f2; }
+.flashcard-3d .back { background: #1f2a6b; color: #eef1ff; transform: rotateY(180deg); }
+.flashcard-3d.flipped .front { transform: rotateY(-180deg); }
+.flashcard-3d.flipped .back { transform: rotateY(0deg); }
+.face-text { font-size: 22px; line-height: 1.5; text-align: center; }
+.face-hint { position: absolute; bottom: 20px; font-size: 12px; color: #9a9aa0; }
+.badge {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: #eceef6;
+  color: #1f1f1d;
+  border-radius: 12px;
+  padding: 3px 12px;
+  font-size: 13px;
+}
+.deck-controls { display: flex; align-items: center; gap: 10px; }
+.deck-controls button { min-width: 40px; font-size: 16px; }
+.deck .review-buttons { width: 100%; }
+.more { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }

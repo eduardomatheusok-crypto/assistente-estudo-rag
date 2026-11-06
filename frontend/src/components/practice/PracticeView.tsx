@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../../api/client.ts';
 import type { PracticeItem, PracticeSession } from '../../api/types.ts';
+import { FlashcardDeck } from './FlashcardDeck.tsx';
 
 type Props = {
   session: PracticeSession;
@@ -44,32 +45,28 @@ export function PracticeView({ session, onUpdate, onClose, onOpenSource }: Props
         <div>
           <h2>{title}</h2>
           <small className="muted">
-            {session.persona === 'entrevistador' ? 'Entrevistador' : 'Examinador'} · foco: {focus} ·{' '}
-            {Math.min(index + 1, session.items.length)} de {session.items.length}
+            {session.mode === 'flashcards'
+              ? `${session.goalType === 'entrevista' ? 'Perguntas para pensar' : 'Termos para explicar'} · foco: ${focus}`
+              : `${session.persona === 'entrevistador' ? 'Entrevistador' : 'Examinador'} · foco: ${focus} · ${Math.min(index + 1, session.items.length)} de ${session.items.length}`}
           </small>
         </div>
-        <button onClick={onClose}>Fechar</button>
+        <button
+          onClick={() => {
+            // A rodada de flashcards só termina ao fechar (permite "gerar mais" até lá).
+            if (session.mode === 'flashcards' && session.status === 'active') void api.finishPractice(session.id).catch(() => {});
+            onClose();
+          }}
+        >
+          Fechar
+        </button>
       </header>
 
       {error && <p className="error">{error}</p>}
 
-      {item ? (
-        session.mode === 'flashcards' ? (
-          <Flashcard
-            key={item.id}
-            item={item}
-            busy={busy}
-            onReview={(correct) =>
-              run(async () => {
-                const updated = await api.review(session.id, item.id, correct);
-                setIndex((i) => i + 1);
-                return updated;
-              })
-            }
-            onOpenSource={() => onOpenSource(item)}
-          />
-        ) : (
-          <Question
+      {session.mode === 'flashcards' ? (
+        <FlashcardDeck session={session} onUpdate={onUpdate} onOpenSource={onOpenSource} />
+      ) : item ? (
+        <Question
             key={item.id}
             item={item}
             busy={busy}
@@ -78,7 +75,6 @@ export function PracticeView({ session, onUpdate, onClose, onOpenSource }: Props
             onOpenSource={() => onOpenSource(item)}
             isLast={index === session.items.length - 1}
           />
-        )
       ) : (
         <Summary session={session} onOpenSource={onOpenSource} />
       )}
@@ -158,34 +154,6 @@ function Question(props: {
           <SourceLink item={item} onOpen={props.onOpenSource} />
           <button type="submit" onClick={props.onNext}>{props.isLast ? 'Ver resultado' : 'Próxima'}</button>
         </div>
-      )}
-    </article>
-  );
-}
-
-function Flashcard(props: { item: PracticeItem; busy: boolean; onReview: (correct: boolean) => void; onOpenSource: () => void }) {
-  const { item } = props;
-  const [flipped, setFlipped] = useState(false);
-  const answer =
-    item.kind === 'mcq' && item.options && item.correctOption !== null
-      ? `${item.options[item.correctOption]}. ${item.referenceAnswer ?? ''}`
-      : item.referenceAnswer;
-
-  return (
-    <article className="practice-card flashcard">
-      <small className="topic">{item.topic}</small>
-      <p className="prompt">{item.prompt}</p>
-      {!flipped ? (
-        <button onClick={() => setFlipped(true)}>Mostrar resposta</button>
-      ) : (
-        <>
-          <div className="card-back">{answer}</div>
-          <SourceLink item={item} onOpen={props.onOpenSource} />
-          <div className="review-buttons">
-            <button className="wrong-btn" disabled={props.busy} onClick={() => props.onReview(false)}>Errei</button>
-            <button className="right-btn" disabled={props.busy} onClick={() => props.onReview(true)}>Acertei</button>
-          </div>
-        </>
       )}
     </article>
   );

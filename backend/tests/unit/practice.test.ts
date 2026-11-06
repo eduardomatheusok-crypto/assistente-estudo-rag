@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { Passage } from '../../src/domain/highlights/batches.ts';
 import { buildEvaluationPrompt, parseEvaluation } from '../../src/domain/practice/evaluation.ts';
 import {
+  buildCardSystemPrompt,
   buildGenerationSystemPrompt,
+  frontKey,
   normalizeTopic,
   outputJsonSchema,
+  validateGeneratedCards,
   validateGeneratedItems,
 } from '../../src/domain/practice/generation.ts';
 import { rankPriorities } from '../../src/domain/practice/priorities.ts';
@@ -177,5 +180,64 @@ describe('rankPriorities', () => {
     expect(ranked[0]!.justification).toBe('Você errou 3 de 4 · última prática há 6 dias');
     expect(ranked[2]!.justification).toBe('Você errou 1 de 4 · praticado hoje');
     expect(ranked[1]!.score).toBeCloseTo(0.7 * 0.5 + 0.3 * 1);
+  });
+});
+
+describe('flashcards (estilo Gemini)', () => {
+  const card = (over: object = {}) => ({
+    topic: 'derivada',
+    passage: 'T1',
+    quote: 'A derivada mede a taxa de variação instantânea.',
+    front: 'Derivada',
+    back: 'Mede a taxa de variação instantânea de uma função.',
+    ...over,
+  });
+  const out = (items: object[]) => JSON.stringify({ items });
+
+  it('aceita cartão com fonte literal: frente = prompt, verso = resposta', () => {
+    const { items } = validateGeneratedCards('prova', out([card()]), 'STOP', passages);
+    expect(items[0]).toMatchObject({
+      kind: 'card',
+      prompt: 'Derivada',
+      referenceAnswer: 'Mede a taxa de variação instantânea de uma função.',
+      options: null,
+      docCharStart: 100,
+    });
+  });
+
+  it('descarta fonte inventada, frente longa demais e frentes repetidas (inclusive as que já existem)', () => {
+    const { items, rejected } = validateGeneratedCards(
+      'prova',
+      out([
+        card({ quote: 'Frase que não existe.' }),
+        card({ front: 'x'.repeat(61) }),
+        card({ front: 'Inclinação' }),
+        card({ front: 'inclinacao!' }),
+        card({ front: 'TANGENTE' }),
+      ]),
+      'STOP',
+      passages,
+      ['Tangente'],
+    );
+    expect(items.map((i) => i.prompt)).toEqual(['Inclinação']);
+    expect(rejected.map((r) => r.reason)).toEqual(['quote_not_found', 'invalid_front', 'duplicate', 'duplicate']);
+  });
+
+  it('entrevista aceita pergunta curta na frente (limite maior)', () => {
+    const front = 'Por que a derivada é a inclinação da reta tangente ao gráfico da função?';
+    const { items } = validateGeneratedCards('entrevista', out([card({ front })]), 'STOP', passages);
+    expect(items[0]!.prompt).toBe(front);
+    expect(validateGeneratedCards('prova', out([card({ front })]), 'STOP', passages).items).toEqual([]);
+  });
+
+  it('prompt muda com o objetivo e lista as frentes a evitar', () => {
+    expect(buildCardSystemPrompt('prova', 10)).toMatch(/PROVA.*termo, sigla ou expressão curta/s);
+    expect(buildCardSystemPrompt('entrevista', 5)).toMatch(/ENTREVISTA.*pergunta curta/s);
+    expect(buildCardSystemPrompt('prova', 5, ['DTO', 'Mitocôndria'])).toContain('Não repita estas frentes (já existem):\n- DTO\n- Mitocôndria');
+    expect(buildCardSystemPrompt('prova', 5)).not.toContain('Não repita');
+  });
+
+  it('frontKey ignora acento, maiúsculas e pontuação', () => {
+    expect(frontKey('O que é DTO?')).toBe(frontKey('o que e dto'));
   });
 });

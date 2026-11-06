@@ -83,6 +83,8 @@ export const api = {
     request<PracticeSession>(`/practice-sessions/${sessionId}/answers`, json('POST', body)),
   review: (sessionId: string, itemId: string, correct: boolean) =>
     request<PracticeSession>(`/practice-sessions/${sessionId}/reviews`, json('POST', { itemId, correct })),
+  moreCards: (sessionId: string, count: 5 | 10 | 15) =>
+    request<PracticeSession>(`/practice-sessions/${sessionId}/more`, json('POST', { count })),
   finishPractice: (sessionId: string) => request<PracticeSession>(`/practice-sessions/${sessionId}/finish`, { method: 'POST' }),
   priorities: (notebookId: string) => request<Priority[]>(`/notebooks/${notebookId}/priorities`),
   itemSource: (itemId: string) => request<ItemSource & { locations: PageLocation[] }>(`/practice-items/${itemId}/source`),

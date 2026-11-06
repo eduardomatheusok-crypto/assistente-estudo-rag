@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { MORE_CARDS_OPTIONS } from '../domain/practice/generation.ts';
 import type { PracticeService } from '../services/practice-service.ts';
 import { idParams } from './schemas.ts';
 
@@ -22,6 +23,8 @@ const answerBody = z
   .refine((b) => b.option !== undefined || b.text !== undefined, 'Envie option (prova) ou text (entrevista).');
 
 const reviewBody = z.object({ itemId: z.uuid(), correct: z.boolean() });
+
+const moreBody = z.object({ count: z.literal(MORE_CARDS_OPTIONS) });
 
 export function practiceRoutes(app: FastifyInstance, service: PracticeService): void {
   app.get('/notebooks/:id/profile', (request) => {
@@ -52,6 +55,12 @@ export function practiceRoutes(app: FastifyInstance, service: PracticeService): 
   app.post('/practice-sessions/:id/reviews', (request) => {
     const { id } = idParams.parse(request.params);
     return service.review(id, reviewBody.parse(request.body));
+  });
+
+  /** Gera mais flashcards (5, 10 ou 15) e acrescenta à rodada. */
+  app.post('/practice-sessions/:id/more', (request) => {
+    const { id } = idParams.parse(request.params);
+    return service.more(id, moreBody.parse(request.body).count);
   });
 
   app.post('/practice-sessions/:id/finish', (request) => {

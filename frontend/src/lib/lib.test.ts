@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { splitAnswer } from './answer.ts';
 import { pdfRectToCss } from './geometry.ts';
 import { segmentText } from './text-marks.ts';
+import { shuffled } from './shuffle.ts';
 
 describe('pdfRectToCss', () => {
   // Página de 792 pt de altura, zoom 2: y do PDF cresce para cima, o da tela para baixo.
@@ -46,5 +47,20 @@ describe('segmentText', () => {
 
   it('ignora marcas vazias ou fora do texto', () => {
     expect(segmentText('abc', [{ start: 5, end: 9, className: 'x' }])).toEqual([{ text: 'abc', start: 0, marks: [] }]);
+  });
+});
+
+describe('shuffled', () => {
+  it('mantém os mesmos itens e não altera a lista original', () => {
+    const original = [1, 2, 3, 4, 5];
+    const result = shuffled(original, () => 0);
+    expect(result).toEqual([2, 3, 4, 5, 1]);
+    expect([...result].sort()).toEqual(original);
+    expect(original).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('lista vazia ou com 1 item volta igual', () => {
+    expect(shuffled([])).toEqual([]);
+    expect(shuffled(['a'])).toEqual(['a']);
   });
 });

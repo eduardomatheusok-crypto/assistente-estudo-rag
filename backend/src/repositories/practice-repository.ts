@@ -1,8 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { withTransaction, type Db } from '../db/pool.ts';
 import type { GoalType } from '../domain/practice/generation.ts';
 import type { TopicStats } from '../domain/practice/priorities.ts';
 
-export type ItemKind = 'mcq' | 'open';
+export type ItemKind = 'mcq' | 'open' | 'card';
 export type SessionMode = 'simulation' | 'flashcards';
 export type SessionFocus = 'general' | 'errors' | 'question';
 
@@ -51,6 +52,8 @@ export type StoredSession = {
 
 export type NewItem = {
   kind: ItemKind;
+  /** Obrigatório nos cartões: o objetivo para o qual a frente foi escrita. */
+  goalType: GoalType | null;
   topic: string;
   prompt: string;
   options: string[] | null;
@@ -97,12 +100,17 @@ export class PracticeRepository {
     );
   }
 
-  /** Trechos citados numa resposta do chat (base do "Treinar este assunto"). */
+  /**
+   * Trechos de uma resposta do chat (base do "Treinar este assunto"):
+   * os citados primeiro, depois os demais recuperados pela busca (até 5 no total).
+   */
   async chunksOfQuestion(questionId: string): Promise<GenerationChunk[]> {
     const { rows } = await this.db.query<GenerationChunk>(
-      `SELECT DISTINCT ON (c.id) c.id, c.document_id AS "documentId", c.text, c.char_start AS "charStart"
-         FROM citations ct JOIN chunks c ON c.id = ct.chunk_id
-        WHERE ct.question_id = $1`,
+      `SELECT c.id, c.document_id AS "documentId", c.text, c.char_start AS "charStart"
+         FROM question_sources s
+         JOIN chunks c ON c.id = s.chunk_id
+        WHERE s.question_id = $1
+        ORDER BY EXISTS (SELECT 1 FROM citations ct WHERE ct.question_id = $1 AND ct.chunk_id = c.id) DESC, s.rank`,
       [questionId],
     );
     return rows;
@@ -127,17 +135,27 @@ export class PracticeRepository {
     return picked;
   }
 
-  /** Questões ainda nunca respondidas (reaproveitamento: evita gerar de novo). */
-  async unusedItems(notebookId: string, kind: ItemKind, chunkIds: string[] | null, limit: number): Promise<StoredItem[]> {
+  /**
+   * Questões/cartões ainda nunca respondidos (reaproveitamento: evita gerar de novo).
+   * Cartões só se reaproveitam no mesmo objetivo (termo de prova ≠ pergunta de entrevista).
+   */
+  async unusedItems(
+    notebookId: string,
+    kind: ItemKind,
+    chunkIds: string[] | null,
+    limit: number,
+    goalType: GoalType,
+  ): Promise<StoredItem[]> {
     const { rows } = await this.db.query<StoredItem>(
       `SELECT ${ITEM_COLUMNS}
          FROM practice_items i JOIN documents d ON d.id = i.document_id
         WHERE i.notebook_id = $1 AND i.kind = $2
           AND ($3::uuid[] IS NULL OR i.chunk_id = ANY($3::uuid[]))
+          AND (i.kind <> 'card' OR i.goal_type = $5)
           AND NOT EXISTS (SELECT 1 FROM attempts a WHERE a.item_id = i.id)
         ORDER BY i.created_at
         LIMIT $4`,
-      [notebookId, kind, chunkIds, limit],
+      [notebookId, kind, chunkIds, limit, goalType],
     );
     return rows;
   }
@@ -167,26 +185,27 @@ export class PracticeRepository {
     return rows;
   }
 
+  /** Os ids são gerados aqui: a ordem devolvida é exatamente a ordem recebida. */
   async insertItems(notebookId: string, items: NewItem[]): Promise<string[]> {
     if (items.length === 0) return [];
-    const { rows } = await this.db.query<{ id: string }>(
+    const ids = items.map(() => randomUUID());
+    await this.db.query(
       `INSERT INTO practice_items
-         (notebook_id, kind, topic, prompt, options, correct_option, reference_answer,
+         (id, notebook_id, kind, goal_type, topic, prompt, options, correct_option, reference_answer,
           chunk_id, document_id, source_quote, doc_char_start, doc_char_end, page_number)
-       SELECT $1, x.kind, x.topic, x.prompt, x.options, x.correct_option, x.reference_answer,
+       SELECT x.id, $1, x.kind, x.goal_type, x.topic, x.prompt, x.options, x.correct_option, x.reference_answer,
               x.chunk_id, x.document_id, x.source_quote, x.doc_char_start, x.doc_char_end, x.page_number
          FROM jsonb_to_recordset($2::jsonb) AS x(
-           kind text, topic text, prompt text, options jsonb, correct_option int, reference_answer text,
+           id uuid, kind text, goal_type text, topic text, prompt text, options jsonb, correct_option int, reference_answer text,
            chunk_id uuid, document_id uuid, source_quote text, doc_char_start int, doc_char_end int,
-           page_number int, ord bigint)
-        ORDER BY x.ord
-       RETURNING id`,
+           page_number int)`,
       [
         notebookId,
         JSON.stringify(
-          items.map((it, ord) => ({
-            ord,
+          items.map((it, i) => ({
+            id: ids[i],
             kind: it.kind,
+            goal_type: it.goalType,
             topic: it.topic,
             prompt: it.prompt,
             options: it.options,
@@ -202,7 +221,7 @@ export class PracticeRepository {
         ),
       ],
     );
-    return rows.map((r) => r.id);
+    return ids;
   }
 
   async findItems(ids: string[]): Promise<StoredItem[]> {
@@ -227,6 +246,17 @@ export class PracticeRepository {
         [session.id, itemIds],
       );
     });
+  }
+
+  /** Acrescenta itens ao fim de uma sessão ("gerar mais" flashcards). */
+  async appendItems(sessionId: string, itemIds: string[]): Promise<void> {
+    if (itemIds.length === 0) return;
+    await this.db.query(
+      `INSERT INTO session_items (session_id, item_id, position)
+       SELECT $1, item_id, (SELECT coalesce(max(position), 0) FROM session_items WHERE session_id = $1) + ord
+         FROM unnest($2::uuid[]) WITH ORDINALITY AS t(item_id, ord)`,
+      [sessionId, itemIds],
+    );
   }
 
   async findSession(id: string): Promise<{ session: StoredSession; items: StoredItem[]; attempts: StoredAttempt[] } | null> {

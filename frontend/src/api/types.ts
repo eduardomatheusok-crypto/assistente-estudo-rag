@@ -124,7 +124,8 @@ export type Attempt = {
 
 export type PracticeItem = {
   id: string;
-  kind: 'mcq' | 'open';
+  /** card = flashcard (prompt = frente, referenceAnswer = verso). */
+  kind: 'mcq' | 'open' | 'card';
   topic: string;
   prompt: string;
   options: string[] | null;

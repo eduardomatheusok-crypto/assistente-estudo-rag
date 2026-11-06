@@ -32,6 +32,24 @@ function respond(request: JsonGenerationRequest) {
       : { text: JSON.stringify({ score: evaluationScore, feedback: 'Faltou precisão.', missingPoints: ['instantânea'] }) };
   }
   const label = firstLabel(request.user);
+  const cards = /Gere (\d+) flashcards/.exec(request.system);
+  if (cards) {
+    // frentes numeradas a partir das que já existem (o "gerar mais" manda a lista para evitar)
+    const avoidList = request.system.split('Não repita estas frentes (já existem):')[1] ?? '';
+    const existing = (avoidList.match(/^- /gm) ?? []).length;
+    const count = Number(cards[1]);
+    return {
+      text: JSON.stringify({
+        items: Array.from({ length: count }, (_, i) => ({
+          topic: 'Derivada',
+          passage: label,
+          quote: DERIVADA,
+          front: `Termo ${existing + i + 1}`,
+          back: `Explicação do termo ${existing + i + 1}.`,
+        })),
+      }),
+    };
+  }
   if (request.system.includes('EXAMINADOR')) {
     return {
       text: JSON.stringify({
@@ -181,10 +199,61 @@ describe.skipIf(!url)('prática (integração com PostgreSQL)', () => {
     expect(next.items.map((i: { id: string }) => i.id)).toContain(session.items[1].id);
   });
 
+  it('flashcards de uma resposta: cartões frente/verso, "gerar mais" sem repetir e rodada só termina no Fechar', async () => {
+    await api('PUT', `/notebooks/${notebookId}/profile`, { goalType: 'prova' });
+    const session = (
+      await api('POST', `/notebooks/${notebookId}/practice-sessions`, { mode: 'flashcards', focus: 'question', questionId })
+    ).json();
+    expect(session.items).toHaveLength(10);
+    expect(session.items[0]).toMatchObject({
+      kind: 'card',
+      prompt: 'Termo 1',
+      referenceAnswer: 'Explicação do termo 1.',
+      options: null,
+      source: { pageNumber: 2 },
+    });
+
+    // revisar o último cartão não encerra a rodada
+    for (const item of session.items) {
+      await api('POST', `/practice-sessions/${session.id}/reviews`, { itemId: item.id, correct: item.prompt !== 'Termo 3' });
+    }
+    let view = (await api('GET', `/practice-sessions/${session.id}`)).json();
+    expect(view).toMatchObject({ status: 'active', summary: { answered: 10, correct: 9 } });
+
+    // gerar mais 5: entram no fim, sem repetir frentes, e o prompt pediu para evitar as existentes
+    const before = ctx.llm.requests.length;
+    view = (await api('POST', `/practice-sessions/${session.id}/more`, { count: 5 })).json();
+    expect(ctx.llm.requests.length).toBe(before + 1);
+    expect(ctx.llm.requests.at(-1)!.system).toContain('Não repita estas frentes (já existem):\n- Termo 1');
+    expect(view.items.map((i: { prompt: string }) => i.prompt).slice(10)).toEqual([
+      'Termo 11',
+      'Termo 12',
+      'Termo 13',
+      'Termo 14',
+      'Termo 15',
+    ]);
+    expect(new Set(view.items.map((i: { prompt: string }) => i.prompt)).size).toBe(15);
+    expect((await api('POST', `/practice-sessions/${session.id}/more`, { count: 7 })).statusCode).toBe(400);
+
+    // cartões de prova não revisados (os 5 novos) não são reaproveitados numa rodada de entrevista
+    await api('PUT', `/notebooks/${notebookId}/profile`, { goalType: 'entrevista' });
+    const interview = (
+      await api('POST', `/notebooks/${notebookId}/practice-sessions`, { mode: 'flashcards', focus: 'question', questionId })
+    ).json();
+    const proveFronts = new Set(view.items.map((i: { id: string }) => i.id));
+    expect(interview.items.some((i: { id: string }) => proveFronts.has(i.id))).toBe(false);
+    expect(ctx.llm.requests.at(-1)!.system).toContain('ENTREVISTA');
+    await api('PUT', `/notebooks/${notebookId}/profile`, { goalType: 'prova' });
+
+    // Fechar encerra; depois disso não gera mais
+    expect((await api('POST', `/practice-sessions/${session.id}/finish`)).json().status).toBe('finished');
+    expect((await api('POST', `/practice-sessions/${session.id}/more`, { count: 5 })).statusCode).toBe(409);
+  });
+
   it('registra custo das chamadas de geração e avaliação', async () => {
     const { rows } = await ctx.db.query(
       `SELECT DISTINCT operation FROM llm_calls WHERE ref_type = 'practice_session' ORDER BY operation`,
     );
-    expect(rows.map((r) => r.operation)).toEqual(['evaluate_answer', 'generate_practice']);
+    expect(rows.map((r) => r.operation)).toEqual(['evaluate_answer', 'generate_flashcards', 'generate_practice']);
   });
 });

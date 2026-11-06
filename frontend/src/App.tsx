@@ -3,7 +3,7 @@ import { api } from './api/client.ts';
 import type { Citation, GoalType, Highlight, Notebook, PageLocation, PracticeSession, StudyDocument } from './api/types.ts';
 import { ChatPanel } from './components/ChatPanel.tsx';
 import { HighlightsPanel } from './components/HighlightsPanel.tsx';
-import { PracticeMenu } from './components/practice/PracticeMenu.tsx';
+import { GoalSelector } from './components/practice/GoalSelector.tsx';
 import { PracticeView } from './components/practice/PracticeView.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import { DocumentViewer } from './components/viewer/DocumentViewer.tsx';
@@ -29,7 +29,7 @@ export function App() {
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const [showHighlights, setShowHighlights] = useState(false);
+  const [tab, setTab] = useState<'chat' | 'highlights'>('chat');
   const [sourceOverlay, setSourceOverlay] = useState<(Overlay & { documentId: string }) | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [focus, setFocus] = useState<FocusTarget | null>(null);
@@ -224,58 +224,47 @@ export function App() {
               {practice && (
                 <button onClick={() => setPracticeVisible(true)}>Voltar à prática</button>
               )}
-              {document?.status === 'ready' && (
-                <button className={showHighlights ? 'active' : ''} onClick={() => setShowHighlights((s) => !s)}>
-                  Grifos {highlights.length > 0 ? `(${highlights.length})` : ''} ▾
-                </button>
-              )}
             </div>
             <div className="viewer-body">
               <DocumentViewer document={document} overlays={overlays} focus={focus} />
-              {showHighlights && notebookId && document?.status === 'ready' && (
-                <div className="drawer">
-                  <HighlightsPanel
-                    notebookId={notebookId}
-                    document={document}
-                    highlights={highlights}
-                    onReloadHighlights={loadHighlights}
-                    hidden={hidden}
-                    onToggleCriterion={(id) =>
-                      setHidden((set) => {
-                        const next = new Set(set);
-                        if (next.has(id)) next.delete(id);
-                        else next.add(id);
-                        return next;
-                      })
-                    }
-                    onOpenHighlight={openHighlight}
-                  />
-                </div>
-              )}
             </div>
           </>
         )}
       </main>
 
       <aside className="panel">
+        <nav className="tabs">
+          <button className={tab === 'chat' ? 'active' : ''} onClick={() => setTab('chat')}>Perguntas</button>
+          <button className={tab === 'highlights' ? 'active' : ''} onClick={() => setTab('highlights')}>
+            Grifos{highlights.length > 0 ? ` (${highlights.length})` : ''}
+          </button>
+        </nav>
         {!notebookId ? (
           <p className="muted panel-pad">Crie ou selecione um caderno.</p>
-        ) : (
+        ) : tab === 'chat' ? (
           <ChatPanel
             notebookId={notebookId}
             onOpenCitation={openCitation}
             practiceBusy={practiceBusy}
             onTrainQuestion={(questionId, mode) => startPractice({ mode, focus: 'question', questionId })}
-            header={
-              <PracticeMenu
-                notebookId={notebookId}
-                goalType={goalType}
-                onGoalChange={changeGoal}
-                onStart={startPractice}
-                onOpenSource={openItemSource}
-                busy={practiceBusy}
-              />
+            header={<GoalSelector goalType={goalType} onChange={changeGoal} />}
+          />
+        ) : (
+          <HighlightsPanel
+            notebookId={notebookId}
+            document={document}
+            highlights={highlights}
+            onReloadHighlights={loadHighlights}
+            hidden={hidden}
+            onToggleCriterion={(id) =>
+              setHidden((set) => {
+                const next = new Set(set);
+                if (next.has(id)) next.delete(id);
+                else next.add(id);
+                return next;
+              })
             }
+            onOpenHighlight={openHighlight}
           />
         )}
       </aside>

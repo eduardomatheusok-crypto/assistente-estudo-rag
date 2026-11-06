@@ -153,6 +153,10 @@ describe('prompt de grifos', () => {
     expect(system).toContain('Critério: Fórmulas');
     expect(system).toContain('O que grifar: Equações matemáticas.');
     expect(system).toMatch(/LITERALMENTE/);
+    // foco em recall: grifar todas as frases que atendem, sempre a frase inteira
+    expect(system).toMatch(/Grife TODAS as frases/);
+    expect(system).toMatch(/UMA frase inteira/);
+    expect(system).not.toMatch(/Na dúvida, não grife/);
   });
 
   it('delimita os trechos e impede que o texto feche o bloco', () => {

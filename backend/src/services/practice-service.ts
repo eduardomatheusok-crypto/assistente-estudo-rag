@@ -9,10 +9,15 @@ import {
   parseEvaluation,
 } from '../domain/practice/evaluation.ts';
 import {
+  buildCardSystemPrompt,
   buildGenerationSystemPrompt,
+  CARDS_PER_SESSION,
+  cardJsonSchema,
   ITEMS_PER_SIMULATION,
   outputJsonSchema,
+  validateGeneratedCards,
   validateGeneratedItems,
+  type GeneratedItem,
   type GoalType,
 } from '../domain/practice/generation.ts';
 import { rankPriorities, type Priority } from '../domain/practice/priorities.ts';
@@ -34,8 +39,6 @@ import type {
 import { Trace, type TimingSink } from '../telemetry/trace.ts';
 import { badRequest, conflict, notFound, ServiceError } from './errors.ts';
 
-/** Flashcards por rodada. */
-const FLASHCARDS_PER_SESSION = 10;
 /** Texto máximo enviado numa geração (1 chamada). */
 const GENERATION_MAX_CHARS = 12_000;
 
@@ -51,8 +54,9 @@ export type PracticeServiceDeps = {
 /** Questão como a interface vê: a resposta só aparece depois de respondida (ou no verso do flashcard). */
 export type ItemView = {
   id: string;
-  kind: 'mcq' | 'open';
+  kind: 'mcq' | 'open' | 'card';
   topic: string;
+  /** Enunciado; no cartão, a frente. */
   prompt: string;
   options: string[] | null;
   source: ItemSource;
@@ -101,8 +105,10 @@ export class PracticeService {
     const profile = await practice.getProfile(input.notebookId);
     if (!profile) throw badRequest('Escolha antes o objetivo deste caderno: prova ou entrevista.');
     const goal = profile.goalType;
-    const kind = goal === 'prova' ? 'mcq' : 'open';
-    const count = input.mode === 'simulation' ? ITEMS_PER_SIMULATION[goal] : FLASHCARDS_PER_SESSION;
+    const questionKind = goal === 'prova' ? 'mcq' : 'open';
+    // Flashcards têm tipo próprio (frente curta + verso); "erros" reaproveita as questões erradas.
+    const kind = input.mode === 'flashcards' && input.focus !== 'errors' ? 'card' : questionKind;
+    const count = input.mode === 'simulation' ? ITEMS_PER_SIMULATION[goal] : CARDS_PER_SESSION;
 
     const id = randomUUID();
     const trace = new Trace('practice', timings, { sessionId: id, mode: input.mode, focus: input.focus, goal }, onSinkError);
@@ -111,7 +117,7 @@ export class PracticeService {
     if (input.focus === 'errors') {
       // Treinar os erros: só reaproveita, nunca gera (custo zero).
       const items = await trace.step('select_items', () =>
-        practice.erroredItems(input.notebookId, input.mode === 'simulation' ? kind : null, count),
+        practice.erroredItems(input.notebookId, input.mode === 'simulation' ? questionKind : null, count),
       );
       if (items.length === 0) throw conflict('Você ainda não tem erros para treinar. Faça uma simulação primeiro.');
       itemIds = items.map((i) => i.id);
@@ -123,12 +129,13 @@ export class PracticeService {
         if (chunks.length === 0) throw badRequest('Esta resposta não tem citações do material para gerar questões.');
       }
       const reused = await trace.step('select_items', () =>
-        practice.unusedItems(input.notebookId, kind, chunks ? chunks.map((c) => c.id) : null, count),
+        practice.unusedItems(input.notebookId, kind, chunks ? chunks.map((c) => c.id) : null, count, goal),
       );
       const missing = count - reused.length;
       const generated =
         missing > 0
-          ? await this.generate(trace, id, input.notebookId, goal, missing, chunks ?? (await practice.sampleChunks(input.notebookId, GENERATION_MAX_CHARS)))
+          ? await this.generate(trace, id, input.notebookId, goal, kind === 'card', missing,
+              chunks ?? (await practice.sampleChunks(input.notebookId, GENERATION_MAX_CHARS)))
           : [];
       itemIds = [...reused.map((i) => i.id), ...generated];
       if (itemIds.length === 0) {
@@ -145,14 +152,20 @@ export class PracticeService {
     return this.get(id);
   }
 
-  /** 1 chamada ao LLM; questões com fonte inventada são descartadas. */
+  /**
+   * 1 chamada ao LLM; itens com fonte inventada são descartados.
+   * `cards` = flashcards (frente/verso); senão, questões da simulação.
+   * `avoidFronts` = frentes que já existem (o "gerar mais" não repete).
+   */
   private async generate(
     trace: Trace,
     sessionId: string,
     notebookId: string,
     goal: GoalType,
+    cards: boolean,
     count: number,
     chunks: GenerationChunk[],
+    avoidFronts: string[] = [],
   ): Promise<string[]> {
     if (chunks.length === 0) return [];
     const { llm, practice, content } = this.deps;
@@ -160,16 +173,18 @@ export class PracticeService {
     const generation = await trace.step('generate', () =>
       llm.generateJson(
         {
-          system: buildGenerationSystemPrompt(goal, count),
+          system: cards ? buildCardSystemPrompt(goal, count, avoidFronts) : buildGenerationSystemPrompt(goal, count),
           user: buildHighlightUserPrompt(passages),
-          jsonSchema: outputJsonSchema(goal),
+          jsonSchema: cards ? cardJsonSchema() : outputJsonSchema(goal),
           maxOutputTokens: 8192,
         },
-        { operation: 'generate_practice', refType: 'practice_session', refId: sessionId },
+        { operation: cards ? 'generate_flashcards' : 'generate_practice', refType: 'practice_session', refId: sessionId },
       ),
     );
-    const { items } = await trace.step('validate', () =>
-      validateGeneratedItems(goal, generation.text, generation.finishReason, passages),
+    const items: GeneratedItem[] = await trace.step('validate', () =>
+      cards
+        ? validateGeneratedCards(goal, generation.text, generation.finishReason, passages, avoidFronts).items
+        : validateGeneratedItems(goal, generation.text, generation.finishReason, passages).items,
     );
     const byChunk = new Map(chunks.map((c) => [c.id, c]));
     const documentIds = [...new Set(items.map((i) => byChunk.get(i.chunkId)!.documentId))];
@@ -178,9 +193,49 @@ export class PracticeService {
       notebookId,
       items.slice(0, count).map((item) => {
         const documentId = byChunk.get(item.chunkId)!.documentId;
-        return { ...item, documentId, pageNumber: pageAt(pages.get(documentId) ?? [], item.docCharStart) };
+        return {
+          ...item,
+          goalType: cards ? goal : null,
+          documentId,
+          pageNumber: pageAt(pages.get(documentId) ?? [], item.docCharStart),
+        };
       }),
     );
+  }
+
+  /**
+   * "Gerar mais" flashcards: 1 chamada, a partir dos mesmos trechos da
+   * sessão, sem repetir as frentes que já existem nela.
+   */
+  async more(sessionId: string, count: number): Promise<SessionView> {
+    const { practice, timings, onSinkError } = this.deps;
+    const found = await practice.findSession(sessionId);
+    if (!found) throw notFound('Sessão de prática');
+    const { session, items } = found;
+    if (session.mode !== 'flashcards' || session.focus === 'errors') {
+      throw badRequest('Só é possível gerar mais cartões numa rodada de flashcards.');
+    }
+    if (session.status !== 'active') throw conflict('Esta rodada de flashcards já foi encerrada.');
+
+    const trace = new Trace('practice_more', timings, { sessionId, count }, onSinkError);
+    const chunks = session.questionId
+      ? await practice.chunksOfQuestion(session.questionId)
+      : await practice.sampleChunks(session.notebookId, GENERATION_MAX_CHARS);
+    const generated = await this.generate(
+      trace,
+      sessionId,
+      session.notebookId,
+      session.goalType,
+      true,
+      count,
+      chunks,
+      items.map((i) => i.prompt),
+    );
+    if (generated.length === 0) {
+      throw new ServiceError(502, 'Não foi possível gerar novos cartões sem repetir os atuais. Tente novamente.');
+    }
+    await trace.step('persist', () => practice.appendItems(sessionId, generated));
+    return this.get(sessionId);
   }
 
   async get(id: string): Promise<SessionView> {
@@ -276,7 +331,7 @@ export class PracticeService {
     const box = await practice.getFlashcardBox(input.itemId);
     const next = nextReview(box, input.correct, new Date());
     await practice.saveFlashcardState(input.itemId, next.box, next.dueAt);
-    await this.finishIfComplete(sessionId, items.length, attempts.length + 1);
+    // A rodada de flashcards não termina sozinha: o estudante pode "gerar mais". Termina no Fechar.
     return this.get(sessionId);
   }
 
