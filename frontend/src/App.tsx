@@ -1,11 +1,14 @@
+import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from './api/client.ts';
 import type { Citation, GoalType, Highlight, Notebook, PageLocation, PracticeSession, StudyDocument } from './api/types.ts';
 import { ChatPanel } from './components/ChatPanel.tsx';
 import { HighlightsPanel } from './components/HighlightsPanel.tsx';
+import { NotebookHome } from './components/NotebookHome.tsx';
 import { GoalSelector } from './components/practice/GoalSelector.tsx';
 import { PracticeView } from './components/practice/PracticeView.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
+import { useToast } from './components/Toasts.tsx';
 import { DocumentViewer } from './components/viewer/DocumentViewer.tsx';
 import type { FocusTarget, Overlay } from './components/viewer/types.ts';
 import { usePolling } from './hooks/usePolling.ts';
@@ -22,14 +25,25 @@ type SourceTarget = {
   title: string;
 };
 
+type Tab = 'chat' | 'highlights';
+
+function storedCollapsed(): boolean {
+  try {
+    return localStorage.getItem('sidebar-collapsed') === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function App() {
+  const notify = useToast();
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [documents, setDocuments] = useState<StudyDocument[]>([]);
+  /** null = tela inicial do caderno. */
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const [tab, setTab] = useState<'chat' | 'highlights'>('chat');
   const [sourceOverlay, setSourceOverlay] = useState<(Overlay & { documentId: string }) | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [focus, setFocus] = useState<FocusTarget | null>(null);
@@ -37,9 +51,16 @@ export function App() {
   const [practice, setPractice] = useState<PracticeSession | null>(null);
   const [practiceVisible, setPracticeVisible] = useState(false);
   const [practiceBusy, setPracticeBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(storedCollapsed);
+  const [tab, setTab] = useState<Tab>('chat');
+  const [chatOpen, setChatOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
+  const notebook = notebooks.find((n) => n.id === notebookId) ?? null;
   const document = documents.find((d) => d.id === documentId) ?? null;
+  const inPractice = !!practice && practiceVisible;
+  const view: 'home' | 'document' | 'practice' = inPractice ? 'practice' : documentId ? 'document' : 'home';
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   useEffect(() => {
     api
@@ -48,17 +69,17 @@ export function App() {
         setNotebooks(list);
         if (list[0]) setNotebookId(list[0].id);
       })
-      .catch((e: Error) => setError(`Não foi possível falar com o backend: ${e.message}`));
-  }, []);
+      .catch((e: Error) => notify(`Não foi possível falar com o backend: ${e.message}`, 'error'));
+  }, [notify]);
 
   const loadDocuments = useCallback(async () => {
     if (!notebookId) return;
     try {
       setDocuments(await api.listDocuments(notebookId));
     } catch (e) {
-      setError((e as Error).message);
+      notify((e as Error).message, 'error');
     }
-  }, [notebookId]);
+  }, [notebookId, notify]);
 
   useEffect(() => {
     setDocuments([]);
@@ -71,7 +92,12 @@ export function App() {
     if (notebookId) api.getProfile(notebookId).then((p) => setGoalType(p.goalType)).catch(() => {});
   }, [loadDocuments, notebookId]);
 
-  usePolling(loadDocuments, 2000, documents.some((d) => d.status === 'processing'));
+  // Enquanto algum documento processa, atualiza o status (e a tela inicial quando termina).
+  const processing = documents.some((d) => d.status === 'processing');
+  usePolling(loadDocuments, 2000, processing);
+  useEffect(() => {
+    if (!processing) refresh();
+  }, [processing, refresh]);
 
   const loadHighlights = useCallback(async () => {
     if (!document || document.status !== 'ready') {
@@ -81,15 +107,42 @@ export function App() {
     try {
       setHighlights(await api.listHighlights(document.id));
     } catch (e) {
-      setError((e as Error).message);
+      notify((e as Error).message, 'error');
     }
-  }, [document?.id, document?.status]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [document?.id, document?.status, notify]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void loadHighlights();
   }, [loadHighlights]);
 
-  /** Abre o documento no trecho pedido e o pinta (fecha a prática, que pode ser retomada). */
+  function toggleCollapsed() {
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem('sidebar-collapsed', c ? '0' : '1');
+      } catch {
+        // preferência só não é lembrada
+      }
+      return !c;
+    });
+  }
+
+  function openDocument(id: string) {
+    setDocumentId(id);
+    setFocus(null);
+    setPracticeVisible(false);
+  }
+
+  function openNotebook(id: string) {
+    if (id === notebookId) {
+      setDocumentId(null);
+      setPracticeVisible(false);
+      refresh();
+    } else {
+      setNotebookId(id);
+    }
+  }
+
+  /** Abre o documento no trecho pedido e o pinta (a prática pode ser retomada). */
   function openSource(target: SourceTarget) {
     setPracticeVisible(false);
     setDocumentId(target.documentId);
@@ -110,18 +163,18 @@ export function App() {
   async function openCitation(citation: Citation) {
     try {
       const c = await api.getCitation(citation.id);
-      openSource({ ...c, id: `citation-${c.id}`, title: `Citação ${c.label}: ${c.quote}` });
+      openSource({ ...c, id: `citation-${c.id}-${Date.now()}`, title: `Citação ${c.label}: ${c.quote}` });
     } catch (e) {
-      setError((e as Error).message);
+      notify((e as Error).message, 'error');
     }
   }
 
   async function openItemSource(itemId: string) {
     try {
       const s = await api.itemSource(itemId);
-      openSource({ ...s, id: `item-${itemId}`, title: `Fonte da questão: ${s.quote}` });
+      openSource({ ...s, id: `item-${itemId}-${Date.now()}`, title: `Fonte da questão: ${s.quote}` });
     } catch (e) {
-      setError((e as Error).message);
+      notify((e as Error).message, 'error');
     }
   }
 
@@ -129,27 +182,45 @@ export function App() {
     if (!notebookId) return;
     try {
       setGoalType((await api.setProfile(notebookId, goal)).goalType);
+      notify(`Objetivo: ${goal === 'prova' ? 'Prova' : 'Entrevista'}. A Simulação abre nesse formato.`);
     } catch (e) {
-      setError((e as Error).message);
+      notify((e as Error).message, 'error');
     }
   }
 
   async function startPractice(body: Parameters<typeof api.startPractice>[1]) {
     if (!notebookId) return;
     if (!goalType) {
-      setError('Escolha o objetivo do caderno (Prova ou Entrevista) no topo do chat antes de treinar.');
+      notify('Escolha o objetivo do caderno (Prova ou Entrevista) no topo do chat antes de treinar.', 'error');
       return;
     }
     setPracticeBusy(true);
-    setError(null);
     try {
       setPractice(await api.startPractice(notebookId, body));
       setPracticeVisible(true);
+      setChatOpen(false);
     } catch (e) {
-      setError((e as Error).message);
+      notify((e as Error).message, 'error');
     } finally {
       setPracticeBusy(false);
     }
+  }
+
+  async function openSession(id: string) {
+    try {
+      setPractice(await api.getPractice(id));
+      setPracticeVisible(true);
+      setChatOpen(false);
+    } catch (e) {
+      notify((e as Error).message, 'error');
+    }
+  }
+
+  function closePractice() {
+    setPractice(null);
+    setPracticeVisible(false);
+    setChatOpen(false);
+    refresh();
   }
 
   function openHighlight(highlight: Highlight) {
@@ -180,81 +251,117 @@ export function App() {
     return list;
   }, [highlights, hidden, sourceOverlay, documentId, focusedId]);
 
+  const classes = ['app', collapsed && 'collapsed', view === 'home' && 'home', view === 'practice' && 'focus', chatOpen && 'chat-open']
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className="app">
+    <div className={classes}>
       <Sidebar
+        collapsed={collapsed}
+        onToggleCollapse={toggleCollapsed}
         notebooks={notebooks}
         notebookId={notebookId}
-        onSelectNotebook={setNotebookId}
-        onNotebookCreated={(notebook) => {
-          setNotebooks((list) => [notebook, ...list]);
-          setNotebookId(notebook.id);
+        onSelectNotebook={openNotebook}
+        onNotebookCreated={(nb) => {
+          setNotebooks((list) => [nb, ...list]);
+          setNotebookId(nb.id);
         }}
         documents={documents}
-        documentId={documentId}
-        onSelectDocument={(id) => {
-          setDocumentId(id);
-          setFocus(null);
-          setPracticeVisible(false);
+        documentId={view === 'home' ? null : documentId}
+        onSelectDocument={openDocument}
+        onDocumentsChanged={() => {
+          void loadDocuments();
+          refresh();
         }}
-        onDocumentsChanged={loadDocuments}
       />
 
-      <main className="viewer">
-        {error && (
-          <p className="error banner" onClick={() => setError(null)}>
-            {error} (clique para fechar)
-          </p>
-        )}
-        {practice && practiceVisible ? (
-          <PracticeView
-            key={practice.id}
-            session={practice}
-            onUpdate={setPractice}
-            onClose={() => {
-              setPractice(null);
-              setPracticeVisible(false);
-            }}
-            onOpenSource={(item) => openItemSource(item.id)}
-          />
+      <main className="main">
+        {!notebook ? (
+          <div className="center-message">Crie um caderno no + da barra lateral para começar.</div>
         ) : (
           <>
-            <div className="main-toolbar">
-              <strong>{document?.title ?? 'Nenhum documento aberto'}</strong>
-              {practice && (
-                <button onClick={() => setPracticeVisible(true)}>Voltar à prática</button>
+            {view === 'home' && (
+              <NotebookHome
+                notebook={notebook}
+                documents={documents}
+                refreshKey={refreshKey}
+                onOpenDocument={openDocument}
+                onOpenSession={openSession}
+              />
+            )}
+            {view !== 'home' && (
+              <motion.div
+                key={documentId ?? 'none'}
+                style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="toolbar">
+                  <h2>
+                    <span className="crumb">{notebook.name} /</span> {document?.title ?? ''}
+                  </h2>
+                  {practice && !practiceVisible && (
+                    <motion.button className="primary" onClick={() => setPracticeVisible(true)} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                      Voltar à prática
+                    </motion.button>
+                  )}
+                </div>
+                <DocumentViewer document={document} overlays={overlays} focus={focus} />
+              </motion.div>
+            )}
+            <AnimatePresence>
+              {inPractice && (
+                <PracticeView
+                  key={practice!.id}
+                  session={practice!}
+                  onUpdate={setPractice}
+                  onClose={closePractice}
+                  onOpenSource={(item) => openItemSource(item.id)}
+                  chatOpen={chatOpen}
+                  onToggleChat={() => setChatOpen((o) => !o)}
+                />
               )}
-            </div>
-            <div className="viewer-body">
-              <DocumentViewer document={document} overlays={overlays} focus={focus} />
-            </div>
+            </AnimatePresence>
           </>
         )}
       </main>
 
-      <aside className="panel">
+      <aside className="panel" aria-hidden={view === 'home' || (view === 'practice' && !chatOpen)}>
         <nav className="tabs">
-          <button className={tab === 'chat' ? 'active' : ''} onClick={() => setTab('chat')}>Perguntas</button>
-          <button className={tab === 'highlights' ? 'active' : ''} onClick={() => setTab('highlights')}>
-            Grifos{highlights.length > 0 ? ` (${highlights.length})` : ''}
-          </button>
+          {(
+            [
+              ['chat', 'Perguntas'],
+              ['highlights', `Grifos${highlights.length ? ` (${highlights.length})` : ''}`],
+            ] as Array<[Tab, string]>
+          ).map(([value, label]) => (
+            <button key={value} className={tab === value ? 'tab active' : 'tab'} onClick={() => setTab(value)}>
+              {label}
+              {tab === value && <motion.span layoutId="tab-ink" className="tab-ink" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
+            </button>
+          ))}
         </nav>
         {!notebookId ? (
-          <p className="muted panel-pad">Crie ou selecione um caderno.</p>
+          <p className="muted" style={{ padding: 16 }}>Crie ou selecione um caderno.</p>
         ) : tab === 'chat' ? (
           <ChatPanel
             notebookId={notebookId}
+            header={<GoalSelector goalType={goalType} onChange={changeGoal} />}
             onOpenCitation={openCitation}
             practiceBusy={practiceBusy}
             onTrainQuestion={(questionId, mode) => startPractice({ mode, focus: 'question', questionId })}
-            header={<GoalSelector goalType={goalType} onChange={changeGoal} />}
+            onAsked={refresh}
           />
         ) : (
           <HighlightsPanel
             notebookId={notebookId}
             document={document}
             highlights={highlights}
-            onReloadHighlights={loadHighlights}
+            onReloadHighlights={() => {
+              void loadHighlights();
+              refresh();
+            }}
             hidden={hidden}
             onToggleCriterion={(id) =>
               setHidden((set) => {

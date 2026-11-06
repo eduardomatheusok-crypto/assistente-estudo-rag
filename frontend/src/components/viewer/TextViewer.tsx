@@ -28,8 +28,8 @@ export function TextViewer({ documentId, overlays, focus }: Props) {
     mark?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [focus, text]);
 
-  if (error) return <div className="viewer-message">Não foi possível abrir o texto: {error}</div>;
-  if (text === null) return <div className="viewer-message">Carregando…</div>;
+  if (error) return <div className="center-message">Não foi possível abrir o texto: {error}</div>;
+  if (text === null) return <div className="center-message">Carregando…</div>;
 
   const byId = new Map(overlays.map((o) => [o.id, o]));
   const segments = segmentText(
@@ -40,7 +40,7 @@ export function TextViewer({ documentId, overlays, focus }: Props) {
   return (
     <div className="text-viewer" ref={scrollRef}>
       <pre>
-        {segments.map((segment) => {
+        {segments.map((segment, index) => {
           if (segment.marks.length === 0) return <span key={segment.start}>{segment.text}</span>;
           // A citação aberta tem prioridade de cor sobre os grifos.
           const top = segment.marks.map((m) => byId.get(m.id!)!).sort((a, b) => Number(!!b.focused) - Number(!!a.focused))[0]!;
@@ -50,7 +50,13 @@ export function TextViewer({ documentId, overlays, focus }: Props) {
               data-overlay={top.id}
               title={segment.marks.map((m) => byId.get(m.id!)!.title).join(' · ')}
               className={top.focused ? 'focused' : undefined}
-              style={{ background: `rgba(${top.color}, ${top.focused ? 0.45 : 0.3})`, outlineColor: `rgb(${top.color})` }}
+              style={{
+                // marca-texto: a faixa cresce da esquerda para a direita (animação "sweep" no CSS)
+                backgroundImage: `linear-gradient(rgba(${top.color}, ${top.focused ? 0.45 : 0.3}), rgba(${top.color}, ${top.focused ? 0.45 : 0.3}))`,
+                backgroundSize: '100% 100%',
+                animationDelay: `${Math.min(index, 20) * 40}ms`,
+                outlineColor: `rgb(${top.color})`,
+              }}
             >
               {segment.text}
             </mark>

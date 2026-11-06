@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { pdfRectToCss } from '../../lib/geometry.ts';
 import type { PDFPageProxy } from '../../lib/pdf.ts';
@@ -57,18 +58,29 @@ export function PdfPage({ page, scale, overlays }: Props) {
       style={{ width: viewport.width, height: viewport.height }}
     >
       <canvas ref={canvasRef} style={{ width: viewport.width, height: viewport.height }} />
-      {overlays.flatMap((overlay) =>
+      {overlays.flatMap((overlay, overlayIndex) =>
         overlay.locations
           .filter((location) => location.page === page.pageNumber)
           .flatMap((location) =>
             location.rects.map((rect, i) => {
               const css = pdfRectToCss(rect, toViewport);
               return (
-                <div
+                // O grifo "passa" da esquerda para a direita, linha a linha, como um marca-texto.
+                <motion.div
                   key={`${overlay.id}-${i}`}
                   className={overlay.focused ? 'mark focused' : 'mark'}
                   data-overlay={overlay.id}
                   title={overlay.title}
+                  initial={{ scaleX: 0 }}
+                  animate={
+                    overlay.focused
+                      ? { scaleX: 1, boxShadow: ['0 0 0 0px rgba(0,0,0,0)', `0 0 0 6px rgba(${overlay.color}, 0.2)`, '0 0 0 0px rgba(0,0,0,0)'] }
+                      : { scaleX: 1 }
+                  }
+                  transition={{
+                    scaleX: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: Math.min(overlayIndex, 12) * 0.08 + i * 0.12 },
+                    boxShadow: { duration: 1.2, repeat: 1, delay: 0.5 },
+                  }}
                   style={{
                     left: css.left,
                     top: css.top,

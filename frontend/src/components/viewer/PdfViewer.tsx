@@ -30,7 +30,8 @@ export function PdfViewer({ url, overlays, focus }: Props) {
         // Zoom inicial: a largura da página ocupa a área disponível.
         const width = scrollRef.current?.clientWidth ?? 800;
         const pageWidth = loaded[0]?.getViewport({ scale: 1 }).width ?? 612;
-        setScale(Math.min(2, Math.max(0.5, (width - 48) / pageWidth)));
+        // desconta o recuo da área (2 × 20 px) e a barra de rolagem vertical
+        setScale(Math.min(2, Math.max(0.5, (width - 72) / pageWidth)));
         setPages(loaded);
       })
       .catch((e: Error) => !cancelled && setError(e.message));
@@ -56,15 +57,16 @@ export function PdfViewer({ url, overlays, focus }: Props) {
     container.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   }, [focus, pages, scale]);
 
-  if (error) return <div className="viewer-message">Não foi possível abrir o PDF: {error}</div>;
+  if (error) return <div className="center-message">Não foi possível abrir o PDF: {error}</div>;
 
   return (
     <div className="pdf-viewer">
-      <div className="viewer-toolbar">
+      {/* Zoom numa pílula flutuante: a barra do topo fica só com o título. */}
+      <div className="zoom-pill">
         <button onClick={() => setScale((s) => Math.max(0.4, (s ?? 1) - ZOOM_STEP))} aria-label="Diminuir zoom">−</button>
         <span>{scale ? `${Math.round(scale * 100)}%` : '…'}</span>
         <button onClick={() => setScale((s) => Math.min(3, (s ?? 1) + ZOOM_STEP))} aria-label="Aumentar zoom">+</button>
-        <span className="muted">{pages.length > 0 ? `${pages.length} página(s)` : 'carregando…'}</span>
+        <span className="muted">{pages.length > 0 ? `${pages.length} p.` : 'carregando…'}</span>
       </div>
       <div className="pdf-scroll" ref={scrollRef}>
         {scale !== null &&

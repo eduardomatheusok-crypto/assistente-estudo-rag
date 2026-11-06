@@ -78,18 +78,20 @@ Nas próximas vezes, basta: `docker compose up -d`, depois `npm run dev` no `bac
 
 ## Como usar
 
-A tela tem três áreas: **cadernos e documentos** à esquerda, o **documento** no centro e, à direita, as abas **Perguntas** e **Grifos**.
+A tela tem três áreas: **cadernos e documentos** à esquerda, o **documento** no centro e, à direita, as abas **Perguntas** e **Grifos**. A barra da esquerda recolhe no **⟨** (o sistema lembra da escolha).
 
 ### 1. Crie um caderno
 
-Na coluna da esquerda, digite o nome (ex.: *Cálculo I*) e, se quiser, a disciplina. Clique em **Criar caderno**.
+Na barra da esquerda, clique no **+** ao lado de *Cadernos*, digite o nome (ex.: *Cálculo I*) e, se quiser, a disciplina. Clique em **Criar caderno**.
+
+Ao clicar num caderno, abre a **tela inicial** dele: perguntas feitas, grifos, flashcards revisados, média nas simulações, os documentos, a atividade recente (*Continue de onde parou*) e os **acertos por assunto**.
 
 ### 2. Envie seus documentos
 
-Clique em **Enviar PDF, Markdown ou TXT** e escolha um ou mais arquivos.
+Clique em **Enviar PDF, MD ou TXT**, no rodapé da barra da esquerda, ou arraste os arquivos até lá.
 
 - O documento aparece como **processando** e, em alguns segundos, fica **pronto**.
-- Clique nele para abrir no centro. O PDF tem zoom (− / +).
+- Clique nele para abrir no centro. O zoom do PDF fica na pílula do canto inferior direito (− / +).
 - O mesmo arquivo não pode ser enviado duas vezes no mesmo caderno.
 - **PDF escaneado** (imagem, sem texto selecionável) não é aceito: o sistema não faz OCR.
 
@@ -132,10 +134,25 @@ Embaixo de cada resposta com citações aparece **Treinar este assunto: [Flashca
 - No fim, **Gerar mais cartões: +5, +10 ou +15**, sem repetir os que já existem.
 - Clique em **Fechar** para encerrar a rodada.
 
-**Simulação:**
-- **Prova:** escolha a alternativa e clique em **Responder**. A certa fica verde, a sua fica vermelha se estiver errada, e aparece a explicação.
-- **Entrevista:** escreva a resposta como se estivesse falando com o entrevistador e receba a nota e o que faltou.
-- Em todas as questões, **Ver no material** abre o trecho que fundamenta a resposta. Para voltar ao treino, use **Voltar à prática** na barra do documento.
+**Simulação de prova (Examinador):** escolha a alternativa e clique em **Responder**. A certa fica verde, a sua fica vermelha se estiver errada, e aparece a explicação. No fim, o resultado com cada questão.
+
+**Simulação de entrevista (Entrevistador):** uma conversa, uma pergunta por vez.
+- Escolha como responder:
+  - **Livre:** um campo só;
+  - **Guiada:** *Definição → Exemplo → Por que importa*, para perguntas sobre conceitos;
+  - **STAR:** *Situação → Tarefa → Ação → Resultado*, para "conte uma vez em que…".
+- O **medidor de fala** estima quanto tempo você levaria falando (~130 palavras por minuto). O ideal é entre 45 s e 2 min.
+- O rascunho fica salvo neste navegador.
+- Ao enviar, você recebe:
+  - a **nota geral**;
+  - notas de **Precisão, Estrutura, Clareza e Exemplo**;
+  - **o que faltou**;
+  - uma **resposta-modelo** tirada do material.
+- **Tentar de novo** reavalia a mesma pergunta (1 chamada a mais). No fim, a média por critério mostra o seu ponto a melhorar.
+
+**Modo foco:** nos treinos, o chat da direita recolhe para não atrapalhar. O botão **Chat** o traz de volta, e **Fechar** encerra o treino.
+
+Em todas as questões, **Ver no material** abre o trecho que fundamenta a resposta. Para voltar ao treino, use **Voltar à prática** na barra do documento.
 
 ---
 
@@ -264,7 +281,7 @@ Pergunta → busca híbrida (palavras + significado) → 5 trechos → Gemini re
 - **Coordenadas:** cada pedaço de texto do PDF guarda sua posição na página, e isso permite pintar citações e grifos exatamente sobre o texto.
 - **Custo e latência:** toda etapa registra o tempo (`step_timings`) e toda chamada ao Gemini registra tokens e custo estimado (`llm_calls`).
 
-**Stack:** TypeScript, Node.js 24, Fastify, Zod, PostgreSQL 17 + pgvector, PDF.js, React 19, Vite, Vitest, Gemini (REST, sem SDK).
+**Stack:** TypeScript, Node.js 24, Fastify, Zod, PostgreSQL 17 + pgvector, PDF.js, React 19, Vite, Motion (animações), Vitest, Gemini (REST, sem SDK).
 
 **Estrutura:**
 
@@ -298,7 +315,7 @@ Base: `http://localhost:3333` (pela interface, `/api/...`).
 | Busca | `POST /notebooks/:id/search` `{ query, strategy: hybrid\|vector\|lexical, k }` |
 | Perguntas | `GET/POST /notebooks/:id/questions` · `GET /questions/:id` · `GET /citations/:id` |
 | Grifos | `GET/POST /notebooks/:id/highlight-criteria` · `DELETE /highlight-criteria/:id` · `POST /documents/:id/highlight-runs` · `GET /highlight-runs/:id` · `GET /documents/:id/highlights` |
-| Prática | `GET/PUT /notebooks/:id/profile` · `POST /notebooks/:id/practice-sessions` · `GET /practice-sessions/:id` · `POST /practice-sessions/:id/answers` · `POST /practice-sessions/:id/reviews` · `POST /practice-sessions/:id/more` · `POST /practice-sessions/:id/finish` · `GET /practice-items/:id/source` · `GET /notebooks/:id/priorities` |
+| Prática | `GET /notebooks/:id/overview` · `GET/PUT /notebooks/:id/profile` · `POST /notebooks/:id/practice-sessions` · `GET /practice-sessions/:id` · `POST /practice-sessions/:id/answers` · `POST /practice-sessions/:id/reviews` · `POST /practice-sessions/:id/more` · `POST /practice-sessions/:id/finish` · `GET /practice-items/:id/source` · `GET /notebooks/:id/priorities` |
 
 Exemplo:
 

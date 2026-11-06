@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { ANSWER_FORMATS } from '../domain/practice/evaluation.ts';
 import { MORE_CARDS_OPTIONS } from '../domain/practice/generation.ts';
 import type { PracticeService } from '../services/practice-service.ts';
 import { idParams } from './schemas.ts';
@@ -19,6 +20,7 @@ const answerBody = z
     itemId: z.uuid(),
     option: z.number().int().min(0).max(3).optional(),
     text: z.string().max(5000).optional(),
+    format: z.enum(ANSWER_FORMATS).optional(),
   })
   .refine((b) => b.option !== undefined || b.text !== undefined, 'Envie option (prova) ou text (entrevista).');
 
@@ -66,6 +68,12 @@ export function practiceRoutes(app: FastifyInstance, service: PracticeService): 
   app.post('/practice-sessions/:id/finish', (request) => {
     const { id } = idParams.parse(request.params);
     return service.finish(id);
+  });
+
+  /** Tela inicial do caderno. */
+  app.get('/notebooks/:id/overview', (request) => {
+    const { id } = idParams.parse(request.params);
+    return service.overview(id);
   });
 
   app.get('/notebooks/:id/priorities', (request) => {

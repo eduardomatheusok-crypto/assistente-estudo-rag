@@ -7,6 +7,7 @@ import type {
   HighlightRun,
   ItemSource,
   Notebook,
+  NotebookOverview,
   PageLocation,
   PracticeSession,
   Priority,
@@ -79,12 +80,14 @@ export const api = {
     notebookId: string,
     body: { mode: 'simulation' | 'flashcards'; focus: 'general' | 'errors' | 'question'; questionId?: string },
   ) => request<PracticeSession>(`/notebooks/${notebookId}/practice-sessions`, json('POST', body)),
-  answer: (sessionId: string, body: { itemId: string; option?: number; text?: string }) =>
+  answer: (sessionId: string, body: { itemId: string; option?: number; text?: string; format?: 'free' | 'guided' | 'star' }) =>
     request<PracticeSession>(`/practice-sessions/${sessionId}/answers`, json('POST', body)),
   review: (sessionId: string, itemId: string, correct: boolean) =>
     request<PracticeSession>(`/practice-sessions/${sessionId}/reviews`, json('POST', { itemId, correct })),
   moreCards: (sessionId: string, count: 5 | 10 | 15) =>
     request<PracticeSession>(`/practice-sessions/${sessionId}/more`, json('POST', { count })),
+  getPractice: (sessionId: string) => request<PracticeSession>(`/practice-sessions/${sessionId}`),
+  overview: (notebookId: string) => request<NotebookOverview>(`/notebooks/${notebookId}/overview`),
   finishPractice: (sessionId: string) => request<PracticeSession>(`/practice-sessions/${sessionId}/finish`, { method: 'POST' }),
   priorities: (notebookId: string) => request<Priority[]>(`/notebooks/${notebookId}/priorities`),
   itemSource: (itemId: string) => request<ItemSource & { locations: PageLocation[] }>(`/practice-items/${itemId}/source`),

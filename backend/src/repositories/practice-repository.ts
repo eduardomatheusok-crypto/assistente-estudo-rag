@@ -35,6 +35,13 @@ export type StoredAttempt = {
   score: number;
   feedback: string | null;
   evaluatedBy: 'code' | 'llm' | 'self';
+  /** Entrevista: notas por critério (0 a 10), resposta-modelo, o que faltou e o formato usado. */
+  rubric: Record<string, number> | null;
+  modelAnswer: string | null;
+  missingPoints: string[] | null;
+  answerFormat: 'free' | 'guided' | 'star' | null;
+  /** Quantas vezes a questão foi respondida nesta sessão ("Tentar de novo"). */
+  tries: number;
   createdAt: Date;
 };
 
@@ -65,6 +72,29 @@ export type NewItem = {
   docCharStart: number;
   docCharEnd: number;
   pageNumber: number;
+};
+
+export type NotebookOverview = {
+  counts: {
+    questions: number;
+    highlights: number;
+    flashcardsReviewed: number;
+    /** Média das notas nas simulações (0 a 1), ou null sem simulações. */
+    simulationAverage: number | null;
+    sessionsThisWeek: number;
+  };
+  documents: Array<{ documentId: string; highlights: number }>;
+  recentQuestions: Array<{ id: string; question: string; status: string; citations: number; createdAt: Date }>;
+  recentSessions: Array<{
+    id: string;
+    mode: SessionMode;
+    goalType: GoalType;
+    topic: string | null;
+    total: number;
+    answered: number;
+    correct: number;
+    createdAt: Date;
+  }>;
 };
 
 export type GenerationChunk = { id: string; documentId: string; text: string; charStart: number };
@@ -277,10 +307,15 @@ export class PracticeRepository {
           WHERE si.session_id = $1 ORDER BY si.position`,
         [id],
       ),
+      // Só a tentativa mais recente de cada questão vale (as anteriores ficam no histórico).
       this.db.query<StoredAttempt>(
-        `SELECT item_id AS "itemId", answer_text AS "answerText", chosen_option AS "chosenOption", correct, score,
-                feedback, evaluated_by AS "evaluatedBy", created_at AS "createdAt"
-           FROM attempts WHERE session_id = $1`,
+        `SELECT DISTINCT ON (item_id)
+                item_id AS "itemId", answer_text AS "answerText", chosen_option AS "chosenOption", correct, score,
+                feedback, evaluated_by AS "evaluatedBy", rubric, model_answer AS "modelAnswer",
+                missing_points AS "missingPoints", answer_format AS "answerFormat",
+                (count(*) OVER (PARTITION BY item_id))::int AS tries, created_at AS "createdAt"
+           FROM attempts WHERE session_id = $1
+          ORDER BY item_id, created_at DESC`,
         [id],
       ),
     ]);
@@ -296,11 +331,30 @@ export class PracticeRepository {
     score: number;
     feedback: string | null;
     evaluatedBy: 'code' | 'llm' | 'self';
+    rubric?: Record<string, number> | null;
+    modelAnswer?: string | null;
+    missingPoints?: string[] | null;
+    answerFormat?: 'free' | 'guided' | 'star' | null;
   }): Promise<void> {
     await this.db.query(
-      `INSERT INTO attempts (session_id, item_id, answer_text, chosen_option, correct, score, feedback, evaluated_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [input.sessionId, input.itemId, input.answerText, input.chosenOption, input.correct, input.score, input.feedback, input.evaluatedBy],
+      `INSERT INTO attempts
+         (session_id, item_id, answer_text, chosen_option, correct, score, feedback, evaluated_by,
+          rubric, model_answer, missing_points, answer_format)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [
+        input.sessionId,
+        input.itemId,
+        input.answerText,
+        input.chosenOption,
+        input.correct,
+        input.score,
+        input.feedback,
+        input.evaluatedBy,
+        input.rubric ? JSON.stringify(input.rubric) : null,
+        input.modelAnswer ?? null,
+        input.missingPoints ? JSON.stringify(input.missingPoints) : null,
+        input.answerFormat ?? null,
+      ],
     );
   }
 
@@ -322,6 +376,57 @@ export class PracticeRepository {
        ON CONFLICT (item_id) DO UPDATE SET box = EXCLUDED.box, due_at = EXCLUDED.due_at, updated_at = now()`,
       [itemId, box, dueAt],
     );
+  }
+
+  /**
+   * Visão geral do caderno (tela inicial). Métricas de aprendizagem vêm das
+   * tentativas; nada aqui chama o LLM.
+   */
+  async overview(notebookId: string): Promise<NotebookOverview> {
+    const [counts, documents, recentQuestions, recentSessions] = await Promise.all([
+      this.db.query<NotebookOverview['counts']>(
+        `SELECT
+           (SELECT count(*)::int FROM questions WHERE notebook_id = $1) AS questions,
+           (SELECT count(*)::int FROM highlights h JOIN documents d ON d.id = h.document_id
+             WHERE d.notebook_id = $1 AND h.status = 'valid') AS highlights,
+           (SELECT count(*)::int FROM attempts a JOIN practice_sessions s ON s.id = a.session_id
+             WHERE s.notebook_id = $1 AND a.evaluated_by = 'self') AS "flashcardsReviewed",
+           (SELECT avg(a.score)::float8 FROM attempts a JOIN practice_sessions s ON s.id = a.session_id
+             WHERE s.notebook_id = $1 AND a.evaluated_by IN ('code', 'llm')) AS "simulationAverage",
+           (SELECT count(*)::int FROM practice_sessions WHERE notebook_id = $1 AND created_at > now() - interval '7 days') AS "sessionsThisWeek"`,
+        [notebookId],
+      ),
+      this.db.query<{ documentId: string; highlights: number }>(
+        `SELECT d.id AS "documentId", count(h.id) FILTER (WHERE h.status = 'valid')::int AS highlights
+           FROM documents d LEFT JOIN highlights h ON h.document_id = d.id
+          WHERE d.notebook_id = $1 GROUP BY d.id`,
+        [notebookId],
+      ),
+      this.db.query<NotebookOverview['recentQuestions'][number]>(
+        `SELECT q.id, q.question, q.status, q.created_at AS "createdAt",
+                (SELECT count(*)::int FROM citations c WHERE c.question_id = q.id) AS citations
+           FROM questions q WHERE q.notebook_id = $1 ORDER BY q.created_at DESC LIMIT 3`,
+        [notebookId],
+      ),
+      this.db.query<NotebookOverview['recentSessions'][number]>(
+        `SELECT s.id, s.mode, s.goal_type AS "goalType", s.created_at AS "createdAt",
+                (SELECT count(*)::int FROM session_items si WHERE si.session_id = s.id) AS total,
+                (SELECT count(DISTINCT a.item_id)::int FROM attempts a WHERE a.session_id = s.id) AS answered,
+                (SELECT count(*)::int FROM (
+                   SELECT DISTINCT ON (a.item_id) a.correct FROM attempts a
+                    WHERE a.session_id = s.id ORDER BY a.item_id, a.created_at DESC) last WHERE last.correct) AS correct,
+                (SELECT i.topic FROM session_items si JOIN practice_items i ON i.id = si.item_id
+                  WHERE si.session_id = s.id ORDER BY si.position LIMIT 1) AS topic
+           FROM practice_sessions s WHERE s.notebook_id = $1 ORDER BY s.created_at DESC LIMIT 3`,
+        [notebookId],
+      ),
+    ]);
+    return {
+      counts: counts.rows[0]!,
+      documents: documents.rows,
+      recentQuestions: recentQuestions.rows,
+      recentSessions: recentSessions.rows,
+    };
   }
 
   /** Desempenho por assunto: base das prioridades (métricas de aprendizagem). */

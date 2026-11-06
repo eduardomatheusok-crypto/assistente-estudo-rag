@@ -3,6 +3,7 @@ import { pageAt } from '../domain/chunking/chunker.ts';
 import type { Passage } from '../domain/highlights/batches.ts';
 import { locateRange, type PageLocation } from '../domain/highlights/locate.ts';
 import {
+  type AnswerFormat,
   buildEvaluationPrompt,
   EVALUATION_SYSTEM_PROMPT,
   evaluationJsonSchema,
@@ -245,7 +246,10 @@ export class PracticeService {
   }
 
   /** Responde uma questão da simulação. Prova: corrige pelo código. Entrevista: 1 chamada ao LLM. */
-  async answer(sessionId: string, input: { itemId: string; option?: number; text?: string }): Promise<SessionView> {
+  async answer(
+    sessionId: string,
+    input: { itemId: string; option?: number; text?: string; format?: AnswerFormat },
+  ): Promise<SessionView> {
     const { practice, llm, timings, onSinkError } = this.deps;
     const found = await practice.findSession(sessionId);
     if (!found) throw notFound('Sessão de prática');
@@ -254,7 +258,10 @@ export class PracticeService {
     if (session.status !== 'active') throw conflict('Esta simulação já terminou.');
     const item = items.find((i) => i.id === input.itemId);
     if (!item) throw notFound('Questão nesta sessão');
-    if (attempts.some((a) => a.itemId === item.id)) throw conflict('Esta questão já foi respondida.');
+    // Múltipla escolha: uma resposta só. Entrevista: "Tentar de novo" reavalia (a mais recente vale).
+    if (item.kind !== 'open' && attempts.some((a) => a.itemId === item.id)) {
+      throw conflict('Esta questão já foi respondida.');
+    }
 
     if (item.kind === 'mcq') {
       if (input.option === undefined) throw badRequest('Escolha uma alternativa.');
@@ -282,6 +289,7 @@ export class PracticeService {
               referenceAnswer: item.referenceAnswer,
               sourceQuote: item.source.quote,
               answer: text,
+              format: input.format,
             }),
             jsonSchema: evaluationJsonSchema(),
             maxOutputTokens: 2048,
@@ -292,7 +300,6 @@ export class PracticeService {
       const evaluation = parseEvaluation(result.text, result.finishReason);
       // Sem avaliação válida, nada é gravado: o estudante pode reenviar.
       if (!evaluation) throw new ServiceError(502, 'Não foi possível avaliar a resposta agora. Tente enviar de novo.');
-      const missing = evaluation.missingPoints.length > 0 ? `\nFaltou: ${evaluation.missingPoints.join('; ')}.` : '';
       await practice.insertAttempt({
         sessionId,
         itemId: item.id,
@@ -300,11 +307,19 @@ export class PracticeService {
         chosenOption: null,
         correct: evaluation.correct,
         score: evaluation.score / 10,
-        feedback: `${evaluation.feedback}${missing}`,
+        feedback: evaluation.feedback,
         evaluatedBy: 'llm',
+        rubric: evaluation.rubric,
+        modelAnswer: evaluation.modelAnswer,
+        missingPoints: evaluation.missingPoints,
+        answerFormat: input.format ?? 'free',
       });
     }
-    await this.finishIfComplete(sessionId, items.length, attempts.length + 1);
+    // Prova termina sozinha na última resposta; a entrevista termina no Fechar (permite "Tentar de novo").
+    if (item.kind === 'mcq') {
+      const answered = new Set([...attempts.map((a) => a.itemId), item.id]).size;
+      await this.finishIfComplete(sessionId, items.length, answered);
+    }
     return this.get(sessionId);
   }
 
@@ -350,6 +365,24 @@ export class PracticeService {
       stats.map((s) => ({ ...s, lastPracticedAt: new Date(s.lastPracticedAt) })),
       new Date(),
     ).map((p) => ({ ...p, source: sources.get(p.topic) ?? null }));
+  }
+
+  /** Tela inicial do caderno: contagens, atividade recente e acertos por assunto (sem LLM). */
+  async overview(notebookId: string) {
+    await this.requireNotebook(notebookId);
+    const [overview, stats, profile] = await Promise.all([
+      this.deps.practice.overview(notebookId),
+      this.deps.practice.topicStats(notebookId),
+      this.deps.practice.getProfile(notebookId),
+    ]);
+    return {
+      goalType: profile?.goalType ?? null,
+      ...overview,
+      topics: stats
+        .map((s) => ({ topic: s.topic, attempts: s.attempts, accuracy: (s.attempts - s.errors) / s.attempts }))
+        .sort((a, b) => b.attempts - a.attempts)
+        .slice(0, 5),
+    };
   }
 
   /** Onde pintar a fonte de uma questão no PDF (para "ver no material"). */

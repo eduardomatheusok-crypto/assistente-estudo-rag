@@ -120,6 +120,12 @@ export type Attempt = {
   score: number;
   feedback: string | null;
   evaluatedBy: 'code' | 'llm' | 'self';
+  /** Entrevista: notas de 0 a 10 por critério. */
+  rubric: { precisao: number; estrutura: number; clareza: number; exemplo: number } | null;
+  modelAnswer: string | null;
+  missingPoints: string[] | null;
+  answerFormat: 'free' | 'guided' | 'star' | null;
+  tries: number;
 };
 
 export type PracticeItem = {
@@ -153,4 +159,28 @@ export type Priority = {
   errorRate: number;
   justification: string;
   source: (ItemSource & { itemId: string }) | null;
+};
+
+export type NotebookOverview = {
+  goalType: GoalType | null;
+  counts: {
+    questions: number;
+    highlights: number;
+    flashcardsReviewed: number;
+    simulationAverage: number | null;
+    sessionsThisWeek: number;
+  };
+  documents: Array<{ documentId: string; highlights: number }>;
+  recentQuestions: Array<{ id: string; question: string; status: string; citations: number; createdAt: string }>;
+  recentSessions: Array<{
+    id: string;
+    mode: 'simulation' | 'flashcards';
+    goalType: GoalType;
+    topic: string | null;
+    total: number;
+    answered: number;
+    correct: number;
+    createdAt: string;
+  }>;
+  topics: Array<{ topic: string; attempts: number; accuracy: number }>;
 };

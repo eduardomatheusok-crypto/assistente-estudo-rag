@@ -29,7 +29,15 @@ function respond(request: JsonGenerationRequest) {
   if (request.system.includes('avaliando a resposta')) {
     return evaluationScore === null
       ? { text: 'saída quebrada' }
-      : { text: JSON.stringify({ score: evaluationScore, feedback: 'Faltou precisão.', missingPoints: ['instantânea'] }) };
+      : {
+          text: JSON.stringify({
+            score: evaluationScore,
+            criteria: { precisao: evaluationScore, estrutura: 8, clareza: 7, exemplo: 3 },
+            feedback: 'Faltou precisão.',
+            missingPoints: ['instantânea'],
+            modelAnswer: 'A derivada mede a taxa de variação instantânea.',
+          }),
+        };
   }
   const label = firstLabel(request.user);
   const cards = /Gere (\d+) flashcards/.exec(request.system);
@@ -190,8 +198,31 @@ describe.skipIf(!url)('prática (integração com PostgreSQL)', () => {
     const view = (
       await api('POST', `/practice-sessions/${session.id}/answers`, { itemId: session.items[0].id, text: 'Minha resposta.' })
     ).json();
-    expect(view.items[0].attempt).toMatchObject({ correct: false, score: 0.4, evaluatedBy: 'llm' });
-    expect(view.items[0].attempt.feedback).toContain('Faltou: instantânea.');
+    expect(view.items[0].attempt).toMatchObject({
+      correct: false,
+      score: 0.4,
+      evaluatedBy: 'llm',
+      feedback: 'Faltou precisão.',
+      missingPoints: ['instantânea'],
+      rubric: { precisao: 4, estrutura: 8, clareza: 7, exemplo: 3 },
+      modelAnswer: 'A derivada mede a taxa de variação instantânea.',
+      answerFormat: 'free',
+      tries: 1,
+    });
+
+    // "Tentar de novo": a mesma pergunta é reavaliada; a tentativa mais recente vale
+    evaluationScore = 8;
+    const retry = (
+      await api('POST', `/practice-sessions/${session.id}/answers`, {
+        itemId: session.items[0].id,
+        text: 'Situação: ... Resultado: ...',
+        format: 'star',
+      })
+    ).json();
+    expect(retry.items[0].attempt).toMatchObject({ correct: true, score: 0.8, answerFormat: 'star', tries: 2 });
+    expect(retry.status).toBe('active'); // entrevista só termina no Fechar
+    expect(ctx.llm.requests.at(-1)!.user).toContain('método STAR');
+    evaluationScore = 4;
     expect(view.items[0].referenceAnswer).toBe('Taxa de variação instantânea.');
 
     // a pergunta não respondida é reaproveitada na próxima entrevista
@@ -248,6 +279,19 @@ describe.skipIf(!url)('prática (integração com PostgreSQL)', () => {
     // Fechar encerra; depois disso não gera mais
     expect((await api('POST', `/practice-sessions/${session.id}/finish`)).json().status).toBe('finished');
     expect((await api('POST', `/practice-sessions/${session.id}/more`, { count: 5 })).statusCode).toBe(409);
+  });
+
+  it('visão geral do caderno: contagens, atividade recente e acertos por assunto (sem LLM)', async () => {
+    const calls = ctx.llm.requests.length;
+    const overview = (await api('GET', `/notebooks/${notebookId}/overview`)).json();
+    expect(overview.counts).toMatchObject({ questions: 1, highlights: 0 });
+    expect(overview.counts.flashcardsReviewed).toBeGreaterThan(0);
+    expect(overview.counts.simulationAverage).toBeGreaterThan(0);
+    expect(overview.recentQuestions[0]).toMatchObject({ question: 'O que a derivada mede?', citations: 1 });
+    expect(overview.recentSessions.length).toBeGreaterThan(0);
+    expect(overview.topics.find((t: { topic: string }) => t.topic === 'Limites')).toBeTruthy();
+    expect(overview.documents).toHaveLength(1);
+    expect(ctx.llm.requests.length).toBe(calls);
   });
 
   it('registra custo das chamadas de geração e avaliação', async () => {
