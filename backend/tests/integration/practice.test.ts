@@ -288,6 +288,9 @@ describe.skipIf(!url)('prática (integração com PostgreSQL)', () => {
     expect(overview.counts.flashcardsReviewed).toBeGreaterThan(0);
     expect(overview.counts.simulationAverage).toBeGreaterThan(0);
     expect(overview.recentQuestions[0]).toMatchObject({ question: 'O que a derivada mede?', citations: 1 });
+    // a pergunta recente leva à primeira citação (abre o documento com o trecho pintado)
+    const citation = (await api('GET', `/citations/${overview.recentQuestions[0].firstCitationId}`)).json();
+    expect(citation).toMatchObject({ quote: DERIVADA, pageNumber: 2 });
     expect(overview.recentSessions.length).toBeGreaterThan(0);
     expect(overview.topics.find((t: { topic: string }) => t.topic === 'Limites')).toBeTruthy();
     expect(overview.documents).toHaveLength(1);

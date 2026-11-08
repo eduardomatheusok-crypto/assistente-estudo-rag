@@ -4,13 +4,9 @@ import { llmAnswerSchema } from './answer-schema.ts';
 export const NOT_FOUND_MESSAGE = 'Não encontrei no material.';
 
 export type RefusalReason =
-  /** A busca não trouxe nenhum trecho; o LLM nem foi chamado. */
   | 'no_results'
-  /** O próprio LLM disse que as fontes não têm a resposta. */
   | 'model_not_found'
-  /** A saída não era JSON válido no schema (ou veio cortada). */
   | 'invalid_output'
-  /** O LLM respondeu, mas nenhuma citação foi comprovada nas fontes. */
   | 'no_valid_citations';
 
 export type AnswerSource = { label: string; chunkId: string; text: string };
@@ -18,9 +14,7 @@ export type AnswerSource = { label: string; chunkId: string; text: string };
 export type ValidCitation = {
   label: string;
   chunkId: string;
-  /** Texto exatamente como está no chunk (pode diferir do enviado só em espaços). */
   quote: string;
-  /** Offsets dentro do texto do chunk. */
   start: number;
   end: number;
 };
@@ -48,8 +42,8 @@ export function refusal(reason: RefusalReason, dropped: DroppedCitation[] = []):
 /**
  * Valida a saída do LLM. Regras:
  * - precisa ser JSON no schema (Zod);
- * - cada citação precisa apontar para uma fonte recuperada E o trecho citado
- *   precisa existir literalmente nessa fonte; as que falham são descartadas;
+ * - cada citação precisa referenciar uma fonte recuperada e o trecho citado
+ *   precisa existir nessa fonte; as que falham são descartadas;
  * - marcadores [Sx] sem citação válida são removidos do texto;
  * - sem nenhuma citação válida, a resposta vira "não encontrei no material".
  */
@@ -105,10 +99,7 @@ export function validateAnswer(
   return { status: 'answered', answer, citations, dropped };
 }
 
-/**
- * Mantém só marcadores de fontes com citação válida.
- * "[S1, S9]" com S9 inválido vira "[S1]"; "[S9]" some.
- */
+/**Mantém só marcadores de fontes com citação válida. "[S1, S9]" com S9 inválido vira "[S1]"; "[S9]" some. */
 export function cleanMarkers(answer: string, validLabels: Set<string>): string {
   return answer
     .replace(/\[\s*(S\d+(?:\s*,\s*S\d+)*)\s*\]/g, (_, group: string) =>

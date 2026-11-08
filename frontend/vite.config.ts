@@ -11,7 +11,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3333',
+        // 127.0.0.1 (e não "localhost"): em alguns sistemas "localhost" vira o IPv6 ::1,
+        // e o backend escuta só no IPv4.
+        target: 'http://127.0.0.1:3333',
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },

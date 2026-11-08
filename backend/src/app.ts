@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { Env } from './config/env.ts';
 import type { Db } from './db/pool.ts';
 import { validateChunkingOptions } from './domain/chunking/chunker.ts';
+import { registerAiGuards } from './http/ai-guards.ts';
 import {
   EMBEDDING_DIMENSIONS,
   EmbeddingProviderError,
@@ -64,6 +65,9 @@ export async function buildApp(
   await app.register(multipart, {
     limits: { fileSize: env.MAX_UPLOAD_MB * 1024 * 1024, files: 1 },
   });
+
+  // Rotas que chamam o Gemini: idempotência + limite por minuto (antes de qualquer rota).
+  registerAiGuards(app, { perMinute: env.AI_RATE_LIMIT_PER_MINUTE });
 
   const onSinkError = (error: unknown) => app.log.error({ err: error }, 'falha ao registrar métrica');
   const timings = new StepTimingRepository(db);

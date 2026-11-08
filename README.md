@@ -1,5 +1,7 @@
 # Assistente de Aprendizagem com RAG
 
+[![CI](https://github.com/eduardomatheusok-crypto/assistente-estudo-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/eduardomatheusok-crypto/assistente-estudo-rag/actions/workflows/ci.yml)
+
 Assistente de estudos que trabalha **só com o seu material**. Você envia apostilas e anotações (PDF, Markdown ou TXT), organizadas em cadernos por disciplina, e pode:
 
 - **Perguntar ao material:** cada resposta cita a fonte [documento, página]. Clicar na citação abre o trecho original destacado. Se a resposta não está no material, o assistente diz *"Não encontrei no material."* e não inventa.
@@ -194,6 +196,8 @@ Arquivo `backend/.env` (modelo em `backend/.env.example`):
 | `GEMINI_API_KEY` | (obrigatória) | Sua chave do Gemini |
 | `DATABASE_URL` | `postgres://notebook:notebook@localhost:5433/notebook` | Banco principal |
 | `PORT` | `3333` | Porta da API |
+| `HOST` | `127.0.0.1` | Endereço em que a API escuta. O padrão aceita só este computador; `0.0.0.0` abre para a rede (cuidado: a API não tem login) |
+| `AI_RATE_LIMIT_PER_MINUTE` | `20` | Pedidos por minuto às rotas que chamam o Gemini. O excesso recebe "Muitos pedidos à IA em pouco tempo" |
 | `STORAGE_DIR` | `./storage` | Pasta dos arquivos enviados (nome = hash SHA-256) |
 | `MAX_UPLOAD_MB` | `50` | Tamanho máximo de upload |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | `1000` / `150` | Tamanho dos trechos e sobreposição, em caracteres |

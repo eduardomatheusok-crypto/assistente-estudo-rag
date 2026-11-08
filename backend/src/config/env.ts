@@ -5,6 +5,10 @@ const envSchema = z
   .object({
     DATABASE_URL: z.string().min(1),
     PORT: z.coerce.number().int().positive().default(3333),
+    // Só este computador acessa a API. Use 0.0.0.0 apenas se souber o que faz: a API não tem login.
+    HOST: z.string().default('127.0.0.1'),
+    // Rotas que chamam o Gemini: no máximo N requisições por minuto (protege a cota gratuita).
+    AI_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(20),
     STORAGE_DIR: z.string().default('./storage'),
     MAX_UPLOAD_MB: z.coerce.number().positive().default(50),
     CHUNK_SIZE: z.coerce.number().int().default(1000),

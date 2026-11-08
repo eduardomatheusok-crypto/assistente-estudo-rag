@@ -160,7 +160,7 @@ export function App() {
     setFocus({ page: target.pageNumber, overlayId: target.id, nonce: Date.now() });
   }
 
-  async function openCitation(citation: Citation) {
+  async function openCitation(citation: Pick<Citation, 'id'>) {
     try {
       const c = await api.getCitation(citation.id);
       openSource({ ...c, id: `citation-${c.id}-${Date.now()}`, title: `Citação ${c.label}: ${c.quote}` });
@@ -288,6 +288,7 @@ export function App() {
                 refreshKey={refreshKey}
                 onOpenDocument={openDocument}
                 onOpenSession={openSession}
+                onOpenCitation={(id) => openCitation({ id })}
               />
             )}
             {view !== 'home' && (

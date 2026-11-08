@@ -5,6 +5,7 @@ import { segmentText } from './text-marks.ts';
 import { shuffled } from './shuffle.ts';
 import { composeAnswer, speechEstimate } from './interview.ts';
 import { relativeDay } from './format.ts';
+import { createIdempotentSender } from './idempotent.ts';
 
 describe('pdfRectToCss', () => {
   // Página de 792 pt de altura, zoom 2: y do PDF cresce para cima, o da tela para baixo.
@@ -98,5 +99,51 @@ describe('relativeDay', () => {
     expect(relativeDay(new Date(2026, 10, 19, 23, 0), now)).toBe('ontem');
     expect(relativeDay(new Date(2026, 10, 15), now)).toBe('há 5 dias');
     expect(relativeDay(new Date(2026, 9, 30), now)).toBe('há 3 semanas');
+  });
+});
+
+describe('createIdempotentSender', () => {
+  function setup(responses: Array<() => Promise<unknown>>) {
+    const sent: Array<{ path: string; key: string | null }> = [];
+    let n = 0;
+    const send = async <T,>(path: string, init: RequestInit): Promise<T> => {
+      sent.push({ path, key: new Headers(init.headers).get('idempotency-key') });
+      return (await responses.shift()!()) as T;
+    };
+    const sender = createIdempotentSender(send, () => `k${++n}`);
+    return { sender, sent };
+  }
+  const body = { method: 'POST', body: '{"question":"O que é derivada?"}' };
+
+  it('clique duplo: o mesmo pedido em andamento sai uma vez só', async () => {
+    const { sender, sent } = setup([() => new Promise((r) => setTimeout(() => r('ok'), 10))]);
+    const [a, b] = await Promise.all([sender('/q', body), sender('/q', body)]);
+    expect(a).toBe('ok');
+    expect(b).toBe('ok');
+    expect(sent).toHaveLength(1);
+  });
+
+  it('falha de rede ou do servidor: a nova tentativa reusa a mesma chave', async () => {
+    const { sender, sent } = setup([
+      () => Promise.reject(new TypeError('Failed to fetch')),
+      () => Promise.reject(Object.assign(new Error('Erro'), { status: 503 })),
+      () => Promise.resolve('ok'),
+      () => Promise.resolve('ok'),
+    ]);
+    await expect(sender('/q', body)).rejects.toThrow();
+    await expect(sender('/q', body)).rejects.toThrow();
+    await sender('/q', body);
+    await sender('/q', body); // depois do sucesso, um novo pedido ganha chave nova
+    expect(sent.map((s) => s.key)).toEqual(['k1', 'k1', 'k1', 'k2']);
+  });
+
+  it('erro definitivo (ex.: 400) descarta a chave', async () => {
+    const { sender, sent } = setup([
+      () => Promise.reject(Object.assign(new Error('Inválido'), { status: 400 })),
+      () => Promise.resolve('ok'),
+    ]);
+    await expect(sender('/q', body)).rejects.toThrow();
+    await sender('/q', body);
+    expect(sent.map((s) => s.key)).toEqual(['k1', 'k2']);
   });
 });

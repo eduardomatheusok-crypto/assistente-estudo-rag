@@ -24,4 +24,4 @@ const shutdown = async () => {
 process.once('SIGINT', shutdown);
 process.once('SIGTERM', shutdown);
 
-await app.listen({ port: env.PORT, host: '0.0.0.0' });
+await app.listen({ port: env.PORT, host: env.HOST });

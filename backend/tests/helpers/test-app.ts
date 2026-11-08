@@ -56,6 +56,8 @@ export async function createTestApp(url: string, overrides: Partial<Env> = {}): 
     GEMINI_LLM_MODEL: 'unused',
     GEMINI_THINKING_LEVEL: 'LOW',
     HIGHLIGHT_BATCH_CHARS: 6000,
+    HOST: '127.0.0.1',
+    AI_RATE_LIMIT_PER_MINUTE: 1000,
     ...overrides,
   };
   const llm = new StubLlm();

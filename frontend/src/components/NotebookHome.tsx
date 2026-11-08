@@ -12,6 +12,8 @@ type Props = {
   refreshKey: number;
   onOpenDocument: (id: string) => void;
   onOpenSession: (id: string) => void;
+  /** Abre o documento na citação, com o trecho pintado. */
+  onOpenCitation: (citationId: string) => void;
 };
 
 const list: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
@@ -38,7 +40,7 @@ function Thumb({ highlighted }: { highlighted: boolean }) {
   );
 }
 
-export function NotebookHome({ notebook, documents, refreshKey, onOpenDocument, onOpenSession }: Props) {
+export function NotebookHome({ notebook, documents, refreshKey, onOpenDocument, onOpenSession, onOpenCitation }: Props) {
   const [overview, setOverview] = useState<NotebookOverview | null>(null);
 
   useEffect(() => {
@@ -118,7 +120,13 @@ export function NotebookHome({ notebook, documents, refreshKey, onOpenDocument, 
                 </button>
               ))}
               {overview?.recentQuestions.map((q) => (
-                <button key={q.id} className="row" onClick={() => documents[0] && onOpenDocument(documents[0].id)}>
+                <button
+                  key={q.id}
+                  className="row"
+                  disabled={!q.firstCitationId}
+                  title={q.firstCitationId ? 'Abrir o trecho citado na resposta' : 'Sem citação: a pergunta não foi encontrada no material'}
+                  onClick={() => q.firstCitationId && onOpenCitation(q.firstCitationId)}
+                >
                   <span className="ico">?</span>
                   <span>
                     {q.question}

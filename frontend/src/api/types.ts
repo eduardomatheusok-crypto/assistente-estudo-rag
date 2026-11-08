@@ -171,7 +171,15 @@ export type NotebookOverview = {
     sessionsThisWeek: number;
   };
   documents: Array<{ documentId: string; highlights: number }>;
-  recentQuestions: Array<{ id: string; question: string; status: string; citations: number; createdAt: string }>;
+  recentQuestions: Array<{
+    id: string;
+    question: string;
+    status: string;
+    citations: number;
+    /** Primeira citação da resposta (null se a pergunta foi recusada). */
+    firstCitationId: string | null;
+    createdAt: string;
+  }>;
   recentSessions: Array<{
     id: string;
     mode: 'simulation' | 'flashcards';

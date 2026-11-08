@@ -1,3 +1,4 @@
+import { createIdempotentSender } from '../lib/idempotent.ts';
 import type {
   CitationContext,
   Criterion,
@@ -39,6 +40,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }
 
+/** Pedidos que gastam cota da IA: sem envio duplo e com Idempotency-Key reaproveitada em nova tentativa. */
+const ai = createIdempotentSender(request);
+
 const json = (method: string, body: unknown): RequestInit => ({
   method,
   headers: { 'content-type': 'application/json' },
@@ -62,14 +66,14 @@ export const api = {
 
   listQuestions: (notebookId: string) => request<Question[]>(`/notebooks/${notebookId}/questions`),
   ask: (notebookId: string, question: string) =>
-    request<Question>(`/notebooks/${notebookId}/questions`, json('POST', { question })),
+    ai<Question>(`/notebooks/${notebookId}/questions`, json('POST', { question })),
   getCitation: (id: string) => request<CitationContext>(`/citations/${id}`),
 
   listCriteria: (notebookId: string) => request<Criterion[]>(`/notebooks/${notebookId}/highlight-criteria`),
   createCriterion: (notebookId: string, label: string, instruction: string) =>
     request<Criterion>(`/notebooks/${notebookId}/highlight-criteria`, json('POST', { label, instruction })),
   startHighlights: (documentId: string, criterionIds: string[]) =>
-    request<HighlightRun[]>(`/documents/${documentId}/highlight-runs`, json('POST', { criterionIds })),
+    ai<HighlightRun[]>(`/documents/${documentId}/highlight-runs`, json('POST', { criterionIds })),
   getRun: (id: string) => request<HighlightRun>(`/highlight-runs/${id}`),
   listHighlights: (documentId: string) => request<Highlight[]>(`/documents/${documentId}/highlights`),
 
@@ -79,13 +83,13 @@ export const api = {
   startPractice: (
     notebookId: string,
     body: { mode: 'simulation' | 'flashcards'; focus: 'general' | 'errors' | 'question'; questionId?: string },
-  ) => request<PracticeSession>(`/notebooks/${notebookId}/practice-sessions`, json('POST', body)),
+  ) => ai<PracticeSession>(`/notebooks/${notebookId}/practice-sessions`, json('POST', body)),
   answer: (sessionId: string, body: { itemId: string; option?: number; text?: string; format?: 'free' | 'guided' | 'star' }) =>
-    request<PracticeSession>(`/practice-sessions/${sessionId}/answers`, json('POST', body)),
+    ai<PracticeSession>(`/practice-sessions/${sessionId}/answers`, json('POST', body)),
   review: (sessionId: string, itemId: string, correct: boolean) =>
     request<PracticeSession>(`/practice-sessions/${sessionId}/reviews`, json('POST', { itemId, correct })),
   moreCards: (sessionId: string, count: 5 | 10 | 15) =>
-    request<PracticeSession>(`/practice-sessions/${sessionId}/more`, json('POST', { count })),
+    ai<PracticeSession>(`/practice-sessions/${sessionId}/more`, json('POST', { count })),
   getPractice: (sessionId: string) => request<PracticeSession>(`/practice-sessions/${sessionId}`),
   overview: (notebookId: string) => request<NotebookOverview>(`/notebooks/${notebookId}/overview`),
   finishPractice: (sessionId: string) => request<PracticeSession>(`/practice-sessions/${sessionId}/finish`, { method: 'POST' }),

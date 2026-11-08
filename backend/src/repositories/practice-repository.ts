@@ -84,7 +84,14 @@ export type NotebookOverview = {
     sessionsThisWeek: number;
   };
   documents: Array<{ documentId: string; highlights: number }>;
-  recentQuestions: Array<{ id: string; question: string; status: string; citations: number; createdAt: Date }>;
+  recentQuestions: Array<{
+    id: string;
+    question: string;
+    status: string;
+    citations: number;
+    firstCitationId: string | null;
+    createdAt: Date;
+  }>;
   recentSessions: Array<{
     id: string;
     mode: SessionMode;
@@ -404,7 +411,9 @@ export class PracticeRepository {
       ),
       this.db.query<NotebookOverview['recentQuestions'][number]>(
         `SELECT q.id, q.question, q.status, q.created_at AS "createdAt",
-                (SELECT count(*)::int FROM citations c WHERE c.question_id = q.id) AS citations
+                (SELECT count(*)::int FROM citations c WHERE c.question_id = q.id) AS citations,
+                -- A primeira citação: clicar na pergunta abre o documento nesse trecho.
+                (SELECT c.id FROM citations c WHERE c.question_id = q.id ORDER BY c.position LIMIT 1) AS "firstCitationId"
            FROM questions q WHERE q.notebook_id = $1 ORDER BY q.created_at DESC LIMIT 3`,
         [notebookId],
       ),

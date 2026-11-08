@@ -1,0 +1,82 @@
+# Integração contínua: a cada push e pull request, confere tipos, testes e build.
+# Nenhum passo usa o Gemini: os testes usam LLM e embeddings simulados (sem chave, sem cota).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Um push novo cancela a execução anterior do mesmo branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (tipos, unitários e integração)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    # PostgreSQL com pgvector, a mesma imagem do docker-compose.yml.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: notebook
+          POSTGRES_PASSWORD: notebook
+          POSTGRES_DB: notebook_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U notebook -d notebook_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      # O banco de teste é apagado a cada execução (nome precisa terminar em _test).
+      TEST_DATABASE_URL: postgres://notebook:notebook@localhost:5432/notebook_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci
+      - name: Checagem de tipos
+        run: npm run typecheck
+      - name: Testes unitários
+        run: npm test
+      - name: Testes de integração (PostgreSQL real)
+        run: npm run test:integration
+
+  frontend:
+    name: Frontend (tipos, testes e build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - name: Checagem de tipos
+        run: npm run typecheck
+      - name: Testes
+        run: npm test
+      - name: Build
+        run: npm run build

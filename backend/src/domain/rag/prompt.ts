@@ -20,9 +20,12 @@ Regras:
 /** Monta a mensagem com as fontes delimitadas e a pergunta. */
 export function buildUserPrompt(question: string, sources: PromptSource[]): string {
   const blocks = sources.map((source) => {
+
+    // deixa legivel para o modelo
     const pages =
       source.pageStart === source.pageEnd ? `${source.pageStart}` : `${source.pageStart}-${source.pageEnd}`;
-    // Impede que um documento "feche" o bloco e escreva fora dele.
+
+      // Impede injeção de prompt
     const text = source.text.replaceAll('</fonte>', '</ fonte>');
     return `<fonte id="${source.label}" documento="${escapeAttribute(source.documentTitle)}" paginas="${pages}">\n${text}\n</fonte>`;
   });
