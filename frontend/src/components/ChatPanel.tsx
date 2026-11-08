@@ -71,7 +71,7 @@ export function ChatPanel({ notebookId, header, onOpenCitation, onTrainQuestion,
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState<string | null>(null);
   const [freshId, setFreshId] = useState<string | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setQuestions([]);
@@ -80,7 +80,10 @@ export function ChatPanel({ notebookId, header, onOpenCitation, onTrainQuestion,
   }, [notebookId, notify]);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Rola só a lista do chat. scrollIntoView rolaria também a página quando o painel
+    // está recolhido (fora da tela), empurrando a barra lateral para a esquerda.
+    const log = logRef.current;
+    log?.scrollTo({ top: log.scrollHeight, behavior: 'smooth' });
   }, [questions, pending]);
 
   async function ask(event: FormEvent) {
@@ -105,7 +108,7 @@ export function ChatPanel({ notebookId, header, onOpenCitation, onTrainQuestion,
   return (
     <div className="chat">
       {header}
-      <div className="chat-log">
+      <div className="chat-log" ref={logRef}>
         {questions.length === 0 && !pending && (
           <p className="muted">Pergunte algo sobre os documentos deste caderno. As respostas usam só o material e citam a página.</p>
         )}
@@ -160,14 +163,13 @@ export function ChatPanel({ notebookId, header, onOpenCitation, onTrainQuestion,
             </motion.div>
           )}
         </AnimatePresence>
-        <div ref={endRef} />
       </div>
       <form className="ask" onSubmit={ask}>
         <label className="visually-hidden" htmlFor="question">Pergunta ao material</label>
         <textarea
           id="question"
           rows={1}
-          placeholder="Ex.: O que a derivada mede?"
+          placeholder="Ex.: O que é rebase no Git?"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {

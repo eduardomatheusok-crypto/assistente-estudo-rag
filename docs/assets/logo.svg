@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Assistente de Estudos com RAG">
+  <rect width="128" height="128" rx="30" fill="#16171d"/>
+  <!-- página do caderno -->
+  <rect x="30" y="24" width="68" height="84" rx="10" fill="#ffffff"/>
+  <!-- linhas de texto; a do meio está grifada -->
+  <rect x="42" y="40" width="40" height="6" rx="3" fill="#c9cdd8"/>
+  <rect x="38" y="54" width="52" height="14" rx="4" fill="#ffd84d"/>
+  <rect x="42" y="58" width="44" height="6" rx="3" fill="#16171d"/>
+  <rect x="42" y="76" width="36" height="6" rx="3" fill="#c9cdd8"/>
+  <rect x="42" y="90" width="26" height="6" rx="3" fill="#c9cdd8"/>
+  <!-- selo de citação -->
+  <circle cx="96" cy="96" r="17" fill="#3056d3" stroke="#16171d" stroke-width="5"/>
+  <path d="M89 99.5c0-4.6 2.2-8 6-9.6l1.3 2.2c-2 1-3 2.4-3.2 4.1h2.6v5.8H89zm9.6 0c0-4.6 2.2-8 6-9.6l1.3 2.2c-2 1-3 2.4-3.2 4.1h2.6v5.8h-6.7z" fill="#ffffff"/>
+</svg>

@@ -1,4 +1,4 @@
-import { createIdempotentSender } from '../lib/idempotent.ts';
+import { createDedupedSender } from '../lib/dedupe.ts';
 import type {
   CitationContext,
   Criterion,
@@ -40,8 +40,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }
 
-/** Pedidos que gastam cota da IA: sem envio duplo e com Idempotency-Key reaproveitada em nova tentativa. */
-const ai = createIdempotentSender(request);
+/** Pedidos que gastam cota da IA: um clique duplo vira um pedido só. */
+const ai = createDedupedSender(request);
 
 const json = (method: string, body: unknown): RequestInit => ({
   method,
