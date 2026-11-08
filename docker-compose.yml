@@ -1,3 +1,5 @@
+# Usar o app:            docker compose up -d --build   → http://localhost:8080
+# Só o banco (para programar com npm run dev):  docker compose up -d postgres
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -7,7 +9,8 @@ services:
       POSTGRES_DB: notebook
     ports:
       # 5433 no host para não conflitar com um PostgreSQL instalado localmente (que usa 5432).
-      - "${POSTGRES_HOST_PORT:-5433}:5432"
+      # 127.0.0.1: o banco (senha padrão) não fica acessível para outras máquinas da rede.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +18,36 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  backend:
+    build: ./backend
+    # A chave do Gemini e as demais configurações vêm do backend/.env.
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      # Dentro da rede do Docker, o banco se chama "postgres" e usa a porta 5432.
+      DATABASE_URL: postgres://notebook:notebook@postgres:5432/notebook
+      # 0.0.0.0 só dentro do container: a porta do app é publicada apenas para este computador (veja "web").
+      HOST: 0.0.0.0
+      PORT: 3333
+      STORAGE_DIR: /app/storage
+    volumes:
+      # A mesma pasta do modo de desenvolvimento: os documentos aparecem nos dois modos.
+      - ./backend/storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    ports:
+      # 127.0.0.1: só este computador acessa (a API não tem login).
+      - "127.0.0.1:${APP_PORT:-8080}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   pgdata:

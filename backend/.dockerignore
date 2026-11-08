@@ -1,0 +1,7 @@
+# Nunca vai para a imagem: a chave fica no .env e entra só na hora de rodar.
+.env
+node_modules
+storage
+tests
+eval
+coverage

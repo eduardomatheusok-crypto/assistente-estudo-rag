@@ -101,15 +101,44 @@ Responda no formato **Livre**, **Guiado** (definição → exemplo → por que i
 
 ## 🚀 Começo rápido
 
-**Você vai precisar de:** [Node.js 24+](https://nodejs.org), [Docker Desktop](https://www.docker.com/) e uma [chave gratuita do Gemini](https://aistudio.google.com/apikey).
+**Você vai precisar de:** [Docker](https://www.docker.com/) e uma [chave gratuita do Gemini](https://aistudio.google.com/apikey). Para só usar o app, não precisa instalar o Node nem abrir uma IDE.
 
 ```bash
-# 1. Banco de dados (PostgreSQL + pgvector), na raiz do projeto
-docker compose up -d
+# 1. Copie a configuração e coloque a sua chave em GEMINI_API_KEY
+cp backend/.env.example backend/.env
 
-# 2. Backend: copie a configuração e coloque a sua chave em GEMINI_API_KEY
+# 2. Suba tudo (banco, API e interface), na raiz do projeto
+docker compose up -d --build
+```
+
+Abra **<http://localhost:8080>**, crie um caderno e envie o [`docs/exemplo/guia-entrevista-dev.pdf`](docs/exemplo/guia-entrevista-dev.pdf) para testar.
+
+| Para | Comando |
+|---|---|
+| Parar | `docker compose stop` |
+| Ligar de novo | `docker compose up -d` |
+| Atualizar depois de mudar o código | `docker compose up -d --build` |
+| Ver os logs da API | `docker compose logs -f backend` |
+
+> [!TIP]
+> Os três containers usam juntos cerca de **200 MB de RAM**. As tabelas do banco são criadas sozinhas na primeira execução, e os seus cadernos e documentos continuam lá quando você desliga.
+
+> [!IMPORTANT]
+> A API não tem login. Por isso o app só aceita conexões **deste computador** (a porta é publicada em `127.0.0.1`). Não abra para a rede (`HOST=0.0.0.0` no modo de desenvolvimento, ou mudando as portas do `docker-compose.yml`) se você não controla essa rede: qualquer pessoa conectada a ela poderia usar a sua cota do Gemini.
+
+<details>
+<summary><b>Modo de desenvolvimento (para mexer no código)</b></summary>
+
+<br>
+
+Aqui o código recarrega sozinho a cada alteração. Precisa do [Node.js 24+](https://nodejs.org).
+
+```bash
+# 1. Só o banco no Docker, na raiz do projeto
+docker compose up -d postgres
+
+# 2. Backend (com o backend/.env já preenchido)
 cd backend
-cp .env.example .env
 npm install
 npm run dev
 
@@ -119,13 +148,21 @@ npm install
 npm run dev
 ```
 
-Abra **<http://localhost:5173>**, crie um caderno e envie o [`docs/exemplo/guia-entrevista-dev.pdf`](docs/exemplo/guia-entrevista-dev.pdf) para testar.
+Abra **<http://localhost:5173>**. Os dois modos usam o mesmo banco e a mesma pasta de arquivos, então os cadernos aparecem nos dois. Se o modo Docker estiver ligado, pare a API e a interface antes (`docker compose stop backend web`) para economizar memória.
 
-> [!TIP]
-> Nas próximas vezes, basta `docker compose up -d` e `npm run dev` no `backend/` e no `frontend/`. As tabelas do banco são criadas sozinhas na primeira execução.
+</details>
 
-> [!IMPORTANT]
-> A API não tem login. Por isso ela só aceita conexões **deste computador** (`HOST=127.0.0.1`). Não troque para `0.0.0.0` numa rede que você não controla: qualquer pessoa conectada a ela poderia usar a sua cota do Gemini.
+<details>
+<summary><b>Usar menos memória no Linux</b></summary>
+
+<br>
+
+No Linux, o **Docker Desktop** roda uma máquina virtual que reserva vários GB de RAM, mesmo que os containers deste projeto usem só ~200 MB. Duas saídas:
+
+- **Docker Engine nativo** (recomendado): no Linux, o Docker roda direto no sistema, sem máquina virtual, e os comandos `docker compose` continuam iguais. Siga o [guia oficial de instalação](https://docs.docker.com/engine/install/) da sua distribuição.
+- **Diminuir o limite do Docker Desktop:** em *Settings → Resources → Memory*. 2 GB sobram para este projeto.
+
+</details>
 
 ---
 
@@ -197,7 +234,7 @@ flowchart LR
 - **Limite de pedidos:** as rotas que chamam o Gemini aceitam até 20 pedidos por minuto (`AI_RATE_LIMIT_PER_MINUTE`). O excesso recebe o erro 429 com o tempo de espera, e a interface não envia duas vezes o mesmo pedido num clique duplo. Assim a cota gratuita não acaba no meio do estudo.
 - **Aprendizagem ≠ consulta:** ler uma resposta não conta como saber o assunto. Só o desempenho nos treinos entra nos acertos por assunto.
 
-**Stack:** TypeScript · Node.js 24 · Fastify · Zod · PostgreSQL 17 + pgvector · PDF.js · React 19 · Vite · Motion · Vitest · Gemini (REST, sem SDK) · GitHub Actions
+**Stack:** TypeScript · Node.js 24 · Fastify · Zod · PostgreSQL 17 + pgvector · PDF.js · React 19 · Vite · Motion · Vitest · Gemini (REST, sem SDK) · Docker + Nginx · GitHub Actions
 
 ---
 
@@ -256,7 +293,7 @@ O modelo está em `backend/.env.example`.
 
 <br>
 
-Os testes **não usam o Gemini**: o LLM e os embeddings são simulados. Por isso não precisam de chave nem gastam cota. O [GitHub Actions](.github/workflows/ci.yml) roda tudo a cada push e pull request, com um PostgreSQL de verdade.
+Os testes **não usam o Gemini**: o LLM e os embeddings são simulados. Por isso não precisam de chave nem gastam cota. O [GitHub Actions](.github/workflows/ci.yml) roda tudo a cada push e pull request, com um PostgreSQL de verdade, e confere se as imagens Docker constroem.
 
 ```bash
 cd backend
@@ -316,14 +353,14 @@ SELECT model, operation, count(*) AS chamadas, round(sum(cost_usd)::numeric, 5) 
 
 | Sintoma | Causa provável | Solução |
 |---|---|---|
-| `docker compose up` falha com *port is already allocated* | Outro serviço usa a porta 5433 | Defina `POSTGRES_HOST_PORT=5434` antes do comando e ajuste o `DATABASE_URL` |
+| `docker compose up` falha com *port is already allocated* | Outro serviço usa a porta 8080 (app) ou 5433 (banco) | Defina `APP_PORT=8081` ou `POSTGRES_HOST_PORT=5434` antes do comando. No modo de desenvolvimento, ajuste também o `DATABASE_URL` |
 | Backend: *ECONNREFUSED* ou *autenticação falhou* | Docker desligado, ou conectando no Postgres errado | Ligue o Docker Desktop, rode `docker compose up -d` e confira a porta 5433 no `.env` |
-| Backend: *GEMINI_API_KEY é obrigatória* | `.env` sem a chave | Preencha `GEMINI_API_KEY` |
+| Backend: *GEMINI_API_KEY é obrigatória* | `.env` sem a chave | Preencha `GEMINI_API_KEY` em `backend/.env`. No modo Docker, rode `docker compose up -d` de novo |
 | *Provedor de IA indisponível ou no limite de uso* | Cota do Gemini esgotada (429) ou modelo sobrecarregado (503) | Espere alguns minutos. A cota diária renova à meia-noite do horário do Pacífico (4h–5h em Brasília) |
 | *Muitos pedidos à IA em pouco tempo* | Mais de 20 pedidos à IA no mesmo minuto | Espere os segundos indicados |
 | Documento fica como **falhou** | PDF escaneado, protegido por senha ou corrompido | Passe o mouse sobre o documento para ver o motivo |
 | *Escolha o objetivo do caderno* ao treinar | O caderno ainda não tem objetivo | Escolha Entrevista ou Prova no topo da aba Perguntas |
-| A interface diz que não fala com o backend | O backend não está rodando | `npm run dev` em `backend/` |
+| A interface diz que não fala com o backend | O backend não está rodando ou parou com erro | Modo Docker: `docker compose logs backend` mostra o motivo (por exemplo, falta a `GEMINI_API_KEY`). Modo de desenvolvimento: `npm run dev` em `backend/` |
 
 </details>
 
@@ -344,10 +381,14 @@ backend/
     db/migrations/  # arquivos .sql numerados, aplicados ao iniciar
   eval/             # avaliação automática e datasets
   tests/            # unitários e de integração
+  Dockerfile        # imagem da API
 frontend/
+  Dockerfile        # compila o React e serve com Nginx
+  nginx.conf        # serve a interface e repassa /api para a API
   src/
     components/     # telas: chat, grifos, visualizador, prática
     lib/            # funções puras (coordenadas, marcações, embaralhar)
+docker-compose.yml  # banco, API e interface
 docs/
   assets/           # imagens deste README
   exemplo/          # PDF de exemplo para testar
@@ -360,7 +401,7 @@ docs/
 
 <br>
 
-Base: `http://localhost:3333` (pela interface, `/api/...`).
+Base: `http://localhost:8080/api` no modo Docker, ou `http://localhost:3333` no modo de desenvolvimento.
 
 | Área | Endpoints |
 |---|---|
@@ -372,9 +413,9 @@ Base: `http://localhost:3333` (pela interface, `/api/...`).
 | Prática | `GET /notebooks/:id/overview` · `GET/PUT /notebooks/:id/profile` · `POST /notebooks/:id/practice-sessions` · `GET /practice-sessions/:id` · `POST /practice-sessions/:id/answers` · `POST /practice-sessions/:id/reviews` · `POST /practice-sessions/:id/more` · `POST /practice-sessions/:id/finish` · `GET /practice-items/:id/source` · `GET /notebooks/:id/priorities` |
 
 ```bash
-curl -X POST localhost:3333/notebooks -H 'content-type: application/json' -d '{"name": "Entrevista Dev Júnior"}'
-curl -F file=@docs/exemplo/guia-entrevista-dev.pdf localhost:3333/notebooks/<id>/documents
-curl -X POST localhost:3333/notebooks/<id>/questions -H 'content-type: application/json' \
+curl -X POST localhost:8080/api/notebooks -H 'content-type: application/json' -d '{"name": "Entrevista Dev Júnior"}'
+curl -F file=@docs/exemplo/guia-entrevista-dev.pdf localhost:8080/api/notebooks/<id>/documents
+curl -X POST localhost:8080/api/notebooks/<id>/questions -H 'content-type: application/json' \
   -d '{"question": "Qual a diferença entre merge e rebase?"}'
 ```
 
