@@ -1,0 +1,176 @@
+{
+  "name": "entrevista-dev",
+  "description": "Guia de entrevista para desenvolvedor júnior (PDF de docs/exemplo) e um resumo de Biologia como distrator. 15 perguntas com resposta no material (várias com outras palavras, para testar a busca por significado) e 8 armadilhas sobre assuntos próximos que o guia não cobre.",
+  "documents": [
+    { "id": "guia", "file": "../../../../docs/exemplo/guia-entrevista-dev.pdf", "title": "Guia de Entrevista: Desenvolvedor Júnior" },
+    { "id": "biologia", "file": "../calculo-exemplo/biologia.md", "title": "Resumo de Biologia Celular" }
+  ],
+  "questions": [
+    {
+      "id": "rest-definicao",
+      "question": "O que é uma API REST?",
+      "answerable": true,
+      "referenceAnswer": "Uma interface que expõe recursos por meio de endereços e usa os métodos do HTTP para operar sobre eles, sem guardar estado do cliente entre uma requisição e outra.",
+      "evidence": [
+        { "document": "guia", "text": "API REST é uma interface que expõe recursos por meio de endereços e usa os métodos do HTTP para operar sobre eles, sem guardar estado do cliente entre uma requisição e outra." }
+      ]
+    },
+    {
+      "id": "rest-autor",
+      "question": "Quem descreveu o estilo REST e em que ano?",
+      "answerable": true,
+      "referenceAnswer": "Roy Fielding, em 2000, na sua tese de doutorado.",
+      "evidence": [{ "document": "guia", "text": "O estilo REST foi descrito por Roy Fielding em 2000, na sua tese de doutorado." }]
+    },
+    {
+      "id": "put-patch",
+      "question": "Qual a diferença entre PUT e PATCH?",
+      "answerable": true,
+      "referenceAnswer": "PUT substitui o recurso; PATCH altera só uma parte dele.",
+      "evidence": [{ "document": "guia", "text": "PUT para substituir, PATCH para alterar parte de um recurso" }]
+    },
+    {
+      "id": "status-cliente-servidor",
+      "question": "Como saber pelo código de status se o erro foi do cliente ou do servidor?",
+      "answerable": true,
+      "referenceAnswer": "Os códigos 4xx indicam erro do cliente e os 5xx indicam erro do servidor (2xx indica sucesso).",
+      "evidence": [{ "document": "guia", "text": "2xx indica sucesso, 4xx indica erro do cliente e 5xx indica erro do servidor" }]
+    },
+    {
+      "id": "status-201",
+      "question": "O que significa uma resposta com status 201?",
+      "answerable": true,
+      "referenceAnswer": "Que o recurso foi criado.",
+      "evidence": [{ "document": "guia", "text": "201 significa recurso criado" }]
+    },
+    {
+      "id": "idempotencia",
+      "question": "O que é um método idempotente e quais métodos HTTP são idempotentes?",
+      "answerable": true,
+      "referenceAnswer": "É o método que, repetido, produz o mesmo efeito que executado uma vez. GET, PUT e DELETE são idempotentes; POST, em geral, não é.",
+      "evidence": [
+        { "document": "guia", "text": "Um método é idempotente quando repeti-lo produz o mesmo efeito que executá-lo uma vez." },
+        { "document": "guia", "text": "GET, PUT e DELETE são idempotentes; POST, em geral, não é." }
+      ]
+    },
+    {
+      "id": "git-distribuido",
+      "question": "Por que o Git é chamado de sistema de controle de versão distribuído?",
+      "answerable": true,
+      "referenceAnswer": "Porque cada pessoa tem uma cópia completa do histórico.",
+      "evidence": [{ "document": "guia", "text": "Ele é um sistema de controle de versão distribuído: cada pessoa tem uma cópia completa do histórico." }]
+    },
+    {
+      "id": "merge-rebase",
+      "question": "Qual a diferença entre merge e rebase no Git?",
+      "answerable": true,
+      "referenceAnswer": "O merge junta duas branches criando um commit de união e preserva o histórico como aconteceu; o rebase reaplica os commits de uma branch sobre outra e deixa o histórico linear, mas reescreve commits.",
+      "evidence": [
+        { "document": "guia", "text": "O merge junta duas branches criando um commit de união e preserva o histórico como aconteceu." },
+        { "document": "guia", "text": "O rebase reaplica os commits de uma branch sobre outra e deixa o histórico linear" }
+      ]
+    },
+    {
+      "id": "rebase-compartilhada",
+      "question": "Posso reorganizar o histórico de uma branch que outras pessoas do time também usam?",
+      "answerable": true,
+      "referenceAnswer": "Não com rebase: ele reescreve commits e não deve ser usado em branches compartilhadas.",
+      "evidence": [{ "document": "guia", "text": "mas reescreve commits e não deve ser usado em branches compartilhadas" }]
+    },
+    {
+      "id": "escopo-let-var",
+      "question": "Qual a diferença de escopo entre let, const e var?",
+      "answerable": true,
+      "referenceAnswer": "let e const têm escopo de bloco; var tem escopo de função.",
+      "evidence": [{ "document": "guia", "text": "As duas têm escopo de bloco, ao contrário de var, que tem escopo de função." }]
+    },
+    {
+      "id": "igualdade",
+      "question": "Por que 0 == \"0\" é verdadeiro, mas 0 === \"0\" é falso?",
+      "answerable": true,
+      "referenceAnswer": "Porque == compara os valores depois de converter os tipos, e === compara valor e tipo, sem conversão.",
+      "evidence": [{ "document": "guia", "text": "O operador == compara valores depois de converter os tipos; o operador === compara valor e tipo, sem conversão." }]
+    },
+    {
+      "id": "await",
+      "question": "Quando uso await, o programa inteiro fica parado esperando?",
+      "answerable": true,
+      "referenceAnswer": "Não: o await pausa só a função até a Promise terminar, sem travar o restante do programa.",
+      "evidence": [{ "document": "guia", "text": "await pausa a função até a Promise terminar, sem travar o restante do programa" }]
+    },
+    {
+      "id": "indice-custo",
+      "question": "Qual é o preço de criar um índice numa tabela?",
+      "answerable": true,
+      "referenceAnswer": "Mais espaço em disco e escritas um pouco mais lentas (em troca de buscas mais rápidas).",
+      "evidence": [{ "document": "guia", "text": "ao custo de mais espaço em disco e de escritas um pouco mais lentas" }]
+    },
+    {
+      "id": "join",
+      "question": "Como mostrar o nome do cliente que fez cada pedido, se os dados estão em duas tabelas?",
+      "answerable": true,
+      "referenceAnswer": "Com um JOIN, juntando a tabela de pedidos com a de clientes pela coluna cliente_id.",
+      "evidence": [
+        { "document": "guia", "text": "juntar a tabela de pedidos com a de clientes pela coluna cliente_id mostra o nome de quem fez cada pedido" }
+      ]
+    },
+    {
+      "id": "busca-binaria",
+      "question": "Por que a busca binária é mais rápida do que procurar item por item?",
+      "answerable": true,
+      "referenceAnswer": "Porque, numa lista ordenada, ela descarta metade dos itens a cada passo (O(log n)), enquanto procurar item por item pode olhar todos os itens (O(n)).",
+      "evidence": [
+        { "document": "guia", "text": "A busca binária em uma lista ordenada é O(log n), porque descarta metade dos itens a cada passo." },
+        { "document": "guia", "text": "Uma busca em lista sem ordem é O(n), porque pode precisar olhar todos os itens." }
+      ]
+    },
+    {
+      "id": "status-401",
+      "question": "Qual código de status HTTP significa não autorizado?",
+      "answerable": false,
+      "note": "Armadilha: o guia cita só 201, 404 e 500. Responder 401 é usar conhecimento de fora."
+    },
+    {
+      "id": "rest-graphql",
+      "question": "Qual a diferença entre REST e GraphQL?",
+      "answerable": false,
+      "note": "O guia fala de REST, mas não de GraphQL."
+    },
+    {
+      "id": "cherry-pick",
+      "question": "Para que serve o git cherry-pick?",
+      "answerable": false,
+      "note": "O guia fala de merge e rebase, mas não de cherry-pick."
+    },
+    {
+      "id": "closure",
+      "question": "O que é uma closure em JavaScript?",
+      "answerable": false,
+      "note": "Assunto clássico de entrevista que o guia não cobre."
+    },
+    {
+      "id": "typescript",
+      "question": "Qual a diferença entre JavaScript e TypeScript?",
+      "answerable": false,
+      "note": "O guia não menciona TypeScript."
+    },
+    {
+      "id": "nosql-exemplos",
+      "question": "Quais são exemplos de bancos NoSQL populares?",
+      "answerable": false,
+      "note": "O guia explica o que é NoSQL, mas não cita nenhum banco pelo nome."
+    },
+    {
+      "id": "quicksort",
+      "question": "Qual é a complexidade do quicksort?",
+      "answerable": false,
+      "note": "O guia fala de Big O, mas só da busca linear e da binária."
+    },
+    {
+      "id": "docker",
+      "question": "O que é um container Docker?",
+      "answerable": false,
+      "note": "Fora do material."
+    }
+  ]
+}

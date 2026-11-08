@@ -229,6 +229,7 @@ flowchart LR
 
 - **Hybrid search:** combines keyword search (in Portuguese, ignoring accents) with meaning-based search. The two result lists are merged by each chunk's rank (*Reciprocal Rank Fusion*). This way the search finds both "rebase" written exactly and "rewriting history" phrased differently.
 - **Nothing made up:** citations, highlights, questions and flashcards must point to text that exists **verbatim** in the document. The code checks this, not the AI.
+- **Measured quality:** in an eval with 23 interview questions, the search found the right passage in **100%** of cases (Recall@5), the AI answered "Não encontrei no material" (not found in the material) in **8 of 8** trap questions, and made up **0** citations. Details in *Automated AI evaluation*, under Reference.
 - **Validated output:** Gemini answers in JSON, checked against a schema (Zod). Output in the wrong format is rejected.
 - **Interview score computed by code:** the AI, acting as a demanding senior interviewer, only classifies the answer. It says which expected points were covered (copying the passage of your answer that proves each one), points out errors and classifies the example as a repetition, generic or a concrete case. The code checks the passages and computes the score: 60% content and 40% form. Good form never rescues weak content, and a generic example never scores 10.
 - **Coordinates:** every piece of text in the PDF keeps its position on the page. That is what allows citations and highlights to be painted exactly over the text.
@@ -328,6 +329,26 @@ docker compose exec postgres createdb -U notebook notebook_eval
 cd backend
 npm run eval -- --dataset eval/datasets/calculo-exemplo/dataset.json --chunks 300:50 --strategies hybrid
 npm run eval -- --dataset <file> --retrieval-only     # search only: much cheaper
+```
+
+**Results: interview guide** (`eval/datasets/entrevista-dev/`, hybrid search, 1000/150 chunks)
+
+The dataset is an answer key: each question comes with the expected answer and the **exact passage** of the guide that proves it. There are 15 questions answered in the guide (several reworded, so that only search by meaning finds them), 8 **traps** on related topics the guide doesn't cover (e.g. status 401, closures, GraphQL), and 1 unrelated document (biology) as a distractor.
+
+| Metric | Result | What it measures | How it is computed |
+|---|---|---|---|
+| Recall@5 | **100%** (15/15) | Whether the search brings the right passage to the AI | Is the answer key passage among the 5 retrieved chunks? |
+| Correct refusal | **100%** (8/8) | Whether the AI admits it doesn't know instead of making things up | On trap questions, is the answer "Não encontrei no material"? |
+| Unjustified refusal | **0%** | Whether the AI refuses questions it could answer | Questions with an answer in the guide that got a refusal |
+| Fabricated citations | **0** | Whether the AI cites text that doesn't exist | Citations not found verbatim in the document (they are discarded before reaching the student) |
+| Citations on the expected passage | 81% (17/21) | Whether the AI cites the passage that proves the answer | Does the citation overlap the answer key passage? The other 4 cite neighbouring passages from the same guide that also support the answer, so the answer key is stricter than needed |
+| Latency / cost | ~2 s / ~US$0.0007 | Whether it is fast and cheap enough | Average per question, from the times and tokens recorded on every call |
+
+> [!NOTE]
+> Small dataset (a 2-page guide). **Correctness** (is the answer right and complete?) is normally measured by an LLM judge, but it hit the free-tier daily quota. The 15 answers were checked by hand: 14 complete and 1 incomplete (binary search: it explained O(log n) but didn't compare it with O(n)).
+
+```bash
+npm run eval -- --dataset eval/datasets/entrevista-dev/dataset.json --strategies hybrid
 ```
 
 **Highlights:** precision, recall and F1 per criterion, and how many highlights were made up (and discarded).

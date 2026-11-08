@@ -227,6 +227,7 @@ flowchart LR
 
 - **Busca híbrida:** junta a busca por palavras (em português, ignorando acentos) com a busca por significado. As duas listas são combinadas pela posição de cada trecho (*Reciprocal Rank Fusion*). Assim, a busca acha tanto "rebase" escrito igual quanto "reescrever o histórico" dito de outro jeito.
 - **Nada inventado:** citações, grifos, questões e flashcards precisam apontar para um texto que existe **literalmente** no documento. O código confere isso, e não a IA.
+- **Qualidade medida:** num eval com 23 perguntas de entrevista, a busca achou o trecho certo em **100%** dos casos (Recall@5), a IA respondeu "Não encontrei no material" em **8 de 8** perguntas-armadilha e inventou **0** citações. Detalhes em *Avaliação automática da IA*, na Referência.
 - **Saída validada:** o Gemini responde em JSON, conferido por um schema (Zod). Uma resposta fora do formato é recusada.
 - **Nota da entrevista calculada pelo código:** a IA, no papel de entrevistador sênior exigente, só classifica a resposta. Ela diz quais pontos esperados foram cobertos (copiando o trecho da sua resposta que prova cada um), aponta os erros e classifica o exemplo como repetição, genérico ou caso concreto. O código confere os trechos e calcula a nota: 60% conteúdo e 40% forma. A forma nunca salva um conteúdo fraco, e um exemplo genérico nunca vale 10.
 - **Coordenadas:** cada pedaço de texto do PDF guarda a posição na página. É isso que permite pintar citações e grifos exatamente sobre o texto.
@@ -326,6 +327,26 @@ docker compose exec postgres createdb -U notebook notebook_eval
 cd backend
 npm run eval -- --dataset eval/datasets/calculo-exemplo/dataset.json --chunks 300:50 --strategies hybrid
 npm run eval -- --dataset <arquivo> --retrieval-only     # só a busca: bem mais barato
+```
+
+**Resultados: guia de entrevista** (`eval/datasets/entrevista-dev/`, busca híbrida, chunks 1000/150)
+
+O dataset é um gabarito: cada pergunta vem com a resposta esperada e o **trecho exato** do guia que a comprova. São 15 perguntas com resposta no guia (várias com outras palavras, para que só a busca por significado as encontre), 8 **armadilhas** sobre assuntos próximos que o guia não cobre (ex.: status 401, closure, GraphQL) e 1 documento sem relação (biologia) como distrator.
+
+| Métrica | Resultado | O que mede | Como é calculada |
+|---|---|---|---|
+| Recall@5 | **100%** (15/15) | Se a busca leva o trecho certo para a IA | O trecho do gabarito está entre os 5 recuperados? |
+| Recusa correta | **100%** (8/8) | Se a IA admite que não sabe em vez de inventar | Nas armadilhas, a resposta é "Não encontrei no material"? |
+| Recusa indevida | **0%** | Se a IA recusa perguntas que poderia responder | Perguntas com resposta no guia que receberam recusa |
+| Citações inventadas | **0** | Se a IA cita texto que não existe | Citações não encontradas literalmente no documento (são descartadas antes de chegar ao estudante) |
+| Citações no trecho esperado | 81% (17/21) | Se a IA cita o trecho que comprova a resposta | A citação encosta no trecho do gabarito? As outras 4 citam trechos vizinhos do mesmo guia que também sustentam a resposta: o gabarito é mais rígido do que precisava |
+| Latência / custo | ~2 s / ~US$ 0,0007 | Se é rápido e barato o suficiente | Média por pergunta, a partir dos tempos e tokens registrados em cada chamada |
+
+> [!NOTE]
+> Dataset pequeno (um guia de 2 páginas). A **correção** (a resposta está certa e completa?) normalmente é medida por um juiz LLM, mas ele atingiu o limite diário do plano gratuito. As 15 respostas foram conferidas à mão: 14 completas e 1 incompleta (busca binária: explicou o O(log n), mas não comparou com o O(n)).
+
+```bash
+npm run eval -- --dataset eval/datasets/entrevista-dev/dataset.json --strategies hybrid
 ```
 
 **Grifos:** precisão, revocação e F1 por critério, e quantos grifos foram inventados (e descartados).
