@@ -189,6 +189,7 @@ flowchart LR
 - **Busca híbrida:** junta a busca por palavras (em português, ignorando acentos) com a busca por significado. As duas listas são combinadas pela posição de cada trecho (*Reciprocal Rank Fusion*). Assim, a busca acha tanto "rebase" escrito igual quanto "reescrever o histórico" dito de outro jeito.
 - **Nada inventado:** citações, grifos, questões e flashcards precisam apontar para um texto que existe **literalmente** no documento. O código confere isso, e não a IA.
 - **Saída validada:** o Gemini responde em JSON, conferido por um schema (Zod). Uma resposta fora do formato é recusada.
+- **Nota da entrevista calculada pelo código:** a IA, no papel de entrevistador sênior exigente, só classifica a resposta. Ela diz quais pontos esperados foram cobertos (copiando o trecho da sua resposta que prova cada um), aponta os erros e classifica o exemplo como repetição, genérico ou caso concreto. O código confere os trechos e calcula a nota: 60% conteúdo e 40% forma. A forma nunca salva um conteúdo fraco, e um exemplo genérico nunca vale 10.
 - **Coordenadas:** cada pedaço de texto do PDF guarda a posição na página. É isso que permite pintar citações e grifos exatamente sobre o texto.
 - **Medição:** toda etapa registra o tempo, e toda chamada ao Gemini registra tokens e custo estimado.
 - **Aprendizagem ≠ consulta:** ler uma resposta não conta como saber o assunto. Só o desempenho nos treinos entra nos acertos por assunto.

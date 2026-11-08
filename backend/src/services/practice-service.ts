@@ -292,12 +292,13 @@ export class PracticeService {
               format: input.format,
             }),
             jsonSchema: evaluationJsonSchema(),
-            maxOutputTokens: 2048,
+            // os pontos com evidência e as justificativas ocupam mais espaço que uma nota só
+            maxOutputTokens: 3072,
           },
           { operation: 'evaluate_answer', refType: 'practice_session', refId: sessionId },
         ),
       );
-      const evaluation = parseEvaluation(result.text, result.finishReason);
+      const evaluation = parseEvaluation(result.text, result.finishReason, { answer: text, question: item.prompt, format: input.format });
       // Sem avaliação válida, nada é gravado: o estudante pode reenviar.
       if (!evaluation) throw new ServiceError(502, 'Não foi possível avaliar a resposta agora. Tente enviar de novo.');
       await practice.insertAttempt({

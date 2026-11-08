@@ -36,7 +36,7 @@ export type StoredAttempt = {
   feedback: string | null;
   evaluatedBy: 'code' | 'llm' | 'self';
   /** Entrevista: notas por critério (0 a 10), resposta-modelo, o que faltou e o formato usado. */
-  rubric: Record<string, number> | null;
+  rubric: Record<string, number | null> | null;
   modelAnswer: string | null;
   missingPoints: string[] | null;
   answerFormat: 'free' | 'guided' | 'star' | null;
@@ -338,7 +338,7 @@ export class PracticeRepository {
     score: number;
     feedback: string | null;
     evaluatedBy: 'code' | 'llm' | 'self';
-    rubric?: Record<string, number> | null;
+    rubric?: Record<string, number | null> | null;
     modelAnswer?: string | null;
     missingPoints?: string[] | null;
     answerFormat?: 'free' | 'guided' | 'star' | null;

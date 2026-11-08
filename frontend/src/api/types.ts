@@ -120,8 +120,8 @@ export type Attempt = {
   score: number;
   feedback: string | null;
   evaluatedBy: 'code' | 'llm' | 'self';
-  /** Entrevista: notas de 0 a 10 por critério. */
-  rubric: { precisao: number; estrutura: number; clareza: number; exemplo: number } | null;
+  /** Entrevista: notas de 0 a 10 por critério. `exemplo` é null quando a pergunta não pede exemplo. */
+  rubric: { precisao: number; estrutura: number; clareza: number; exemplo: number | null } | null;
   modelAnswer: string | null;
   missingPoints: string[] | null;
   answerFormat: 'free' | 'guided' | 'star' | null;

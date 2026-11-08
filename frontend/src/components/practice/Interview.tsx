@@ -313,11 +313,21 @@ function Ring({ score }: { score: number }) {
   );
 }
 
-function CriteriaBars({ rubric }: { rubric: Record<string, number> }) {
+function CriteriaBars({ rubric }: { rubric: Record<string, number | null> }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {CRITERIA.map(([k, label], i) => {
-        const v = rubric[k] ?? 0;
+        const value = rubric[k];
+        if (value == null) {
+          return (
+            <div key={k} className="crit-row na" title="A pergunta não pedia exemplo: este critério não entra na nota.">
+              <span>{label}</span>
+              <small className="muted">não se aplica</small>
+              <b>—</b>
+            </div>
+          );
+        }
+        const v = value;
         return (
           <div key={k} className="crit-row">
             <span>{label}</span>
@@ -387,12 +397,14 @@ function Summary({ session }: { session: PracticeSession }) {
   const attempts = session.items.map((i) => i.attempt).filter((a): a is Attempt => !!a);
   if (attempts.length === 0) return <p className="muted">Nenhuma pergunta respondida.</p>;
   const avg = attempts.reduce((s, a) => s + a.score, 0) / attempts.length;
-  const rubric: Record<string, number> = {};
+  // média por critério só das respostas em que ele se aplica (o exemplo pode ficar de fora)
+  const rubric: Record<string, number | null> = {};
   for (const [k] of CRITERIA) {
     const values = attempts.map((a) => a.rubric?.[k]).filter((v): v is number => typeof v === 'number');
-    rubric[k] = values.length ? Math.round((values.reduce((s, v) => s + v, 0) / values.length) * 10) / 10 : 0;
+    rubric[k] = values.length ? Math.round((values.reduce((s, v) => s + v, 0) / values.length) * 10) / 10 : null;
   }
-  const weakest = CRITERIA.reduce((w, c) => ((rubric[c[0]] ?? 0) < (rubric[w[0]] ?? 0) ? c : w));
+  const rated = CRITERIA.filter(([k]) => rubric[k] != null);
+  const weakest = rated.length ? rated.reduce((w, c) => (rubric[c[0]]! < rubric[w[0]]! ? c : w)) : null;
   return (
     <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 14 }} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
       <b>Resultado da entrevista</b>
@@ -401,9 +413,11 @@ function Summary({ session }: { session: PracticeSession }) {
         média de {attempts.length} resposta{attempts.length === 1 ? '' : 's'}
       </small>
       <CriteriaBars rubric={rubric} />
-      <p>
-        Ponto a melhorar: <b>{weakest[1]}</b>. Treine de novo pelas respostas do chat.
-      </p>
+      {weakest && (
+        <p>
+          Ponto a melhorar: <b>{weakest[1]}</b>. Treine de novo pelas respostas do chat.
+        </p>
+      )}
     </motion.div>
   );
 }

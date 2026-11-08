@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Passage } from '../../src/domain/highlights/batches.ts';
-import { buildEvaluationPrompt, parseEvaluation } from '../../src/domain/practice/evaluation.ts';
+import {
+  buildEvaluationPrompt,
+  computeScores,
+  EVALUATION_SYSTEM_PROMPT,
+  parseEvaluation,
+} from '../../src/domain/practice/evaluation.ts';
 import {
   buildCardSystemPrompt,
   buildGenerationSystemPrompt,
@@ -119,35 +124,101 @@ describe('prompts de geração', () => {
 });
 
 describe('avaliação de resposta aberta', () => {
-  const evaluation = (over: object = {}) =>
+  const answer =
+    'Um método é idempotente quando repetir a mesma requisição várias vezes tem o mesmo efeito que fazer uma vez só. ' +
+    'Por exemplo, o GET só lê os dados, e repetir um DELETE no mesmo recurso continua deixando ele apagado. ' +
+    'Já o POST não é idempotente, porque cada chamada cria um registro novo.';
+  const context = { answer, question: 'O que significa idempotência em HTTP?', format: 'free' as const };
+  const point = (ponto: string, status: string, evidencia = '') => ({ ponto, status, evidencia });
+  const output = (over: object = {}) =>
     JSON.stringify({
-      score: 7,
-      criteria: { precisao: 9, estrutura: 8, clareza: 7, exemplo: 5 },
-      feedback: ' Bom. ',
-      missingPoints: ['inclinação', ' '],
-      modelAnswer: ' A derivada mede a taxa de variação. ',
+      pontos: [
+        point('Repetir tem o mesmo efeito', 'coberto', 'repetir a mesma requisição várias vezes tem o mesmo efeito'),
+        point('GET, PUT e DELETE são idempotentes', 'parcial', 'repetir um DELETE no mesmo recurso'),
+        point('POST não é idempotente', 'coberto', '"Já o POST não é idempotente..."'),
+      ],
+      erros: [],
+      criterios: {
+        estrutura: { justificativa: 'Definição, exemplos e contraste.', nota: 8 },
+        clareza: { justificativa: 'Direta.', nota: 8 },
+        exemplo: { tipo: 'generico', justificativa: 'Exemplos de manual.', nota: 6 },
+      },
+      feedback: ' Boa resposta, mas faltou o PUT. ',
+      modelAnswer: ' Um método é idempotente quando repeti-lo produz o mesmo efeito. ',
       ...over,
     });
 
-  it('valida nota, critérios e resposta-modelo; acerto a partir de 6', () => {
-    expect(parseEvaluation(evaluation(), 'STOP')).toEqual({
-      score: 7,
-      correct: true,
-      feedback: 'Bom.',
-      missingPoints: ['inclinação'],
-      rubric: { precisao: 9, estrutura: 8, clareza: 7, exemplo: 5 },
-      modelAnswer: 'A derivada mede a taxa de variação.',
-    });
-    expect(parseEvaluation(evaluation({ score: 4 }), 'STOP')?.correct).toBe(false);
+  it('caso real: esquecer o PUT deixa o ponto parcial e a nota abaixo de 10', () => {
+    const r = parseEvaluation(output(), 'STOP', context)!;
+    // precisão = 10 × (2 + 0,5) ÷ 3 = 8,3 · forma = (8 + 8 + 6) ÷ 3 = 7,3 · geral = 0,6 × 8,3 + 0,4 × 7,3 = 7,9
+    expect(r.rubric).toEqual({ precisao: 8.3, estrutura: 8, clareza: 8, exemplo: 6 });
+    expect(r.score).toBe(7.9);
+    expect(r.correct).toBe(true);
+    expect(r.missingPoints).toEqual(['GET, PUT e DELETE são idempotentes (incompleto)']);
+    expect(r.feedback).toBe('Boa resposta, mas faltou o PUT.');
+    expect(r.modelAnswer).toBe('Um método é idempotente quando repeti-lo produz o mesmo efeito.');
   });
 
-  it('limita as notas a 0..10 e recusa saída inválida ou sem critérios', () => {
-    const r = parseEvaluation(evaluation({ score: 15, criteria: { precisao: 12, estrutura: -1, clareza: 7, exemplo: 5 } }), 'STOP');
-    expect(r?.score).toBe(10);
-    expect(r?.rubric).toMatchObject({ precisao: 10, estrutura: 0 });
-    expect(parseEvaluation(JSON.stringify({ score: 5, feedback: 'x', missingPoints: [], modelAnswer: 'y' }), 'STOP')).toBeNull();
-    expect(parseEvaluation('nada', 'STOP')).toBeNull();
-    expect(parseEvaluation(evaluation(), 'MAX_TOKENS')).toBeNull();
+  it('ponto sem evidência literal na resposta (ou curta demais) vira "faltou"', () => {
+    const r = parseEvaluation(
+      output({
+        pontos: [
+          point('Repetir tem o mesmo efeito', 'coberto', 'repetir dá sempre o mesmo resultado'), // paráfrase: não está na resposta
+          point('POST não é idempotente', 'coberto', 'POST'), // curta demais
+          point('Exemplo com DELETE', 'coberto', 'REPETIR UM DELETE NO MESMO RECURSO'), // maiúsculas são aceitas
+        ],
+      }),
+      'STOP',
+      context,
+    )!;
+    expect(r.missingPoints).toEqual(['Repetir tem o mesmo efeito', 'POST não é idempotente']);
+    expect(r.rubric.precisao).toBe(3.3);
+  });
+
+  it('erro conceitual com trecho literal derruba a precisão; erro inventado é ignorado', () => {
+    const withError = parseEvaluation(
+      output({ erros: [{ trecho: 'o GET só lê os dados', correcao: 'x' }, { trecho: 'PATCH é idempotente', correcao: 'y' }] }),
+      'STOP',
+      context,
+    )!;
+    // 8,3 − 2 (só o primeiro erro está na resposta) = 6,3, limitado a 5 por haver erro
+    expect(withError.rubric.precisao).toBe(5);
+    // forma 7,3 não salva o conteúdo: geral = min(0,6 × 5 + 0,4 × 7,3; 5 + 1) = 5,9
+    expect(withError.score).toBe(5.9);
+    expect(withError.correct).toBe(false);
+  });
+
+  it('exemplo: a nota fica presa na faixa do tipo, e "não se aplica" sai da média', () => {
+    const example = (tipo: string, nota: number) =>
+      output({ criterios: { estrutura: { justificativa: '', nota: 8 }, clareza: { justificativa: '', nota: 8 }, exemplo: { tipo, justificativa: '', nota } } });
+    expect(parseEvaluation(example('generico', 10), 'STOP', context)!.rubric.exemplo).toBe(7);
+    expect(parseEvaluation(example('repeticao', 9), 'STOP', context)!.rubric.exemplo).toBe(4);
+    expect(parseEvaluation(example('concreto', 3), 'STOP', context)!.rubric.exemplo).toBe(8);
+    expect(parseEvaluation(example('nenhum', 7), 'STOP', context)!.rubric.exemplo).toBe(0);
+
+    const notApplicable = parseEvaluation(example('nao_se_aplica', 10), 'STOP', context)!;
+    expect(notApplicable.rubric.exemplo).toBeNull();
+    expect(notApplicable.score).toBe(8.2); // 0,6 × 8,3 + 0,4 × 8 (só estrutura e clareza entram na forma)
+    // o formato guiado pede exemplo: "não se aplica" vira "nenhum" (0)
+    expect(parseEvaluation(example('nao_se_aplica', 10), 'STOP', { ...context, format: 'guided' })!.rubric.exemplo).toBe(0);
+    // a pergunta pede exemplo
+    expect(parseEvaluation(example('nao_se_aplica', 10), 'STOP', { ...context, question: 'Dê um exemplo de método idempotente.' })!.rubric.exemplo).toBe(0);
+  });
+
+  it('forma boa não salva conteúdo fraco', () => {
+    expect(computeScores({ points: ['coberto', 'faltou', 'faltou', 'parcial'], errors: 0, estrutura: 10, clareza: 10, exemplo: 10 })).toEqual({
+      score: 4.8, // 0,6 × 3,8 + 0,4 × 10 = 6,3, limitado a 3,8 + 1
+      precisao: 3.8,
+    });
+    expect(computeScores({ points: ['coberto', 'coberto'], errors: 0, estrutura: 9, clareza: 9, exemplo: null }).score).toBe(9.6);
+  });
+
+  it('recusa saída inválida, sem pontos ou cortada', () => {
+    expect(parseEvaluation(output({ pontos: [] }), 'STOP', context)).toBeNull();
+    expect(parseEvaluation(JSON.stringify({ score: 10, feedback: 'x', missingPoints: [], modelAnswer: 'y' }), 'STOP', context)).toBeNull();
+    expect(parseEvaluation(output({ criterios: { estrutura: { justificativa: '', nota: 8 } } }), 'STOP', context)).toBeNull();
+    expect(parseEvaluation('nada', 'STOP', context)).toBeNull();
+    expect(parseEvaluation(output(), 'MAX_TOKENS', context)).toBeNull();
   });
 
   it('informa o formato da resposta e delimita o texto do candidato', () => {
@@ -161,6 +232,12 @@ describe('avaliação de resposta aberta', () => {
     expect(prompt.match(/<\/resposta>/g)).toHaveLength(1);
     expect(prompt).toContain('método STAR (Situação, Tarefa, Ação, Resultado)');
     expect(buildEvaluationPrompt({ question: 'q', referenceAnswer: 'r', sourceQuote: 's', answer: 'a' })).toContain('resposta livre');
+  });
+
+  it('o prompt traz a persona, a régua do exemplo e a calibração', () => {
+    expect(EVALUATION_SYSTEM_PROMPT).toContain('ENTREVISTADOR TÉCNICO SÊNIOR');
+    for (const tipo of ['nao_se_aplica', 'nenhum', 'repeticao', 'generico', 'concreto']) expect(EVALUATION_SYSTEM_PROMPT).toContain(tipo);
+    expect(EVALUATION_SYSTEM_PROMPT).toContain('Exemplo de calibração 2');
   });
 });
 

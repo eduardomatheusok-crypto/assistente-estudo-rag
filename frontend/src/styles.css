@@ -344,6 +344,7 @@ textarea { resize: vertical; }
 .ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .crit-row { display: grid; grid-template-columns: 76px 1fr 26px; gap: 8px; align-items: center; font-size: 12px; }
 .crit-row b { text-align: right; font-variant-numeric: tabular-nums; }
+.crit-row.na { opacity: 0.7; }
 .miss { display: flex; flex-wrap: wrap; gap: 6px; }
 .miss span { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--bad-soft); color: var(--bad); }
 .model { background: var(--bg); border-radius: 10px; padding: 10px 12px; font-family: var(--font-doc); font-size: 15px; line-height: 1.55; margin-top: 8px; }

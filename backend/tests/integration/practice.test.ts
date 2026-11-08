@@ -24,20 +24,31 @@ const mcq = (label: string, topic: string, quote: string, correctOption = 1) => 
 });
 
 /** Respostas do LLM simulado conforme o tipo de pedido. */
-let evaluationScore: number | null = 4;
+/** Qualidade da avaliação simulada: fraca (1 de 2 pontos), boa (2 de 2) ou saída quebrada. */
+let evaluationQuality: 'fraca' | 'boa' | null = 'fraca';
 function respond(request: JsonGenerationRequest) {
   if (request.system.includes('avaliando a resposta')) {
-    return evaluationScore === null
-      ? { text: 'saída quebrada' }
-      : {
-          text: JSON.stringify({
-            score: evaluationScore,
-            criteria: { precisao: evaluationScore, estrutura: 8, clareza: 7, exemplo: 3 },
-            feedback: 'Faltou precisão.',
-            missingPoints: ['instantânea'],
-            modelAnswer: 'A derivada mede a taxa de variação instantânea.',
-          }),
-        };
+    if (evaluationQuality === null) return { text: 'saída quebrada' };
+    // a evidência é a própria resposta do candidato, para passar na conferência literal
+    const answer = /<resposta>\n([\s\S]*)\n<\/resposta>/.exec(request.user)?.[1] ?? '';
+    const good = evaluationQuality === 'boa';
+    return {
+      text: JSON.stringify({
+        pontos: [
+          { ponto: 'Taxa de variação', status: 'coberto', evidencia: answer },
+          { ponto: 'Variação instantânea', status: good ? 'coberto' : 'faltou', evidencia: good ? answer : '' },
+        ],
+        erros: [],
+        criterios: {
+          estrutura: { justificativa: 'x', nota: good ? 8 : 4 },
+          clareza: { justificativa: 'x', nota: good ? 8 : 6 },
+          // "genérico" com nota 10: o código prende em 7
+          exemplo: good ? { tipo: 'generico', justificativa: 'x', nota: 10 } : { tipo: 'nao_se_aplica', justificativa: 'x', nota: 0 },
+        },
+        feedback: 'Faltou precisão.',
+        modelAnswer: 'A derivada mede a taxa de variação instantânea.',
+      }),
+    };
   }
   const label = firstLabel(request.user);
   const cards = /Gere (\d+) flashcards/.exec(request.system);
@@ -190,28 +201,29 @@ describe.skipIf(!url)('prática (integração com PostgreSQL)', () => {
     expect(session.items).toHaveLength(2);
     expect(session.items[0]).toMatchObject({ kind: 'open', options: null });
 
-    evaluationScore = null;
+    evaluationQuality = null;
     const broken = await api('POST', `/practice-sessions/${session.id}/answers`, { itemId: session.items[0].id, text: 'Minha resposta.' });
     expect(broken.statusCode).toBe(502);
 
-    evaluationScore = 4;
+    evaluationQuality = 'fraca';
     const view = (
       await api('POST', `/practice-sessions/${session.id}/answers`, { itemId: session.items[0].id, text: 'Minha resposta.' })
     ).json();
     expect(view.items[0].attempt).toMatchObject({
+      // nota calculada pelo código: precisão 5 (1 de 2 pontos), forma 5 (exemplo não se aplica) → 5,0
       correct: false,
-      score: 0.4,
+      score: 0.5,
       evaluatedBy: 'llm',
       feedback: 'Faltou precisão.',
-      missingPoints: ['instantânea'],
-      rubric: { precisao: 4, estrutura: 8, clareza: 7, exemplo: 3 },
+      missingPoints: ['Variação instantânea'],
+      rubric: { precisao: 5, estrutura: 4, clareza: 6, exemplo: null },
       modelAnswer: 'A derivada mede a taxa de variação instantânea.',
       answerFormat: 'free',
       tries: 1,
     });
 
     // "Tentar de novo": a mesma pergunta é reavaliada; a tentativa mais recente vale
-    evaluationScore = 8;
+    evaluationQuality = 'boa';
     const retry = (
       await api('POST', `/practice-sessions/${session.id}/answers`, {
         itemId: session.items[0].id,
@@ -219,10 +231,12 @@ describe.skipIf(!url)('prática (integração com PostgreSQL)', () => {
         format: 'star',
       })
     ).json();
-    expect(retry.items[0].attempt).toMatchObject({ correct: true, score: 0.8, answerFormat: 'star', tries: 2 });
+    // precisão 10, forma (8 + 8 + 7) ÷ 3 → 0,6 × 10 + 0,4 × 7,67 = 9,1
+    expect(retry.items[0].attempt).toMatchObject({ correct: true, score: 0.91, answerFormat: 'star', tries: 2 });
+    expect(retry.items[0].attempt.rubric).toEqual({ precisao: 10, estrutura: 8, clareza: 8, exemplo: 7 });
     expect(retry.status).toBe('active'); // entrevista só termina no Fechar
     expect(ctx.llm.requests.at(-1)!.user).toContain('método STAR');
-    evaluationScore = 4;
+    evaluationQuality = 'fraca';
     expect(view.items[0].referenceAnswer).toBe('Taxa de variação instantânea.');
 
     // a pergunta não respondida é reaproveitada na próxima entrevista
