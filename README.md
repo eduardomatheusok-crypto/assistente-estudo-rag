@@ -1,266 +1,271 @@
+**English** | [Português](README.pt-BR.md)
+
 <p align="center">
-  <img src="docs/assets/logo.svg" width="96" alt="Ícone do Assistente de Estudos com RAG">
+  <img src="docs/assets/logo.svg" width="96" alt="RAG Study Assistant icon">
 </p>
 
-<h1 align="center">Assistente de Estudos com RAG</h1>
+<h1 align="center">RAG Study Assistant</h1>
 
 <p align="center">
-  <b>Estude só com o seu material.</b> Envie apostilas e anotações, faça perguntas e receba respostas com a página de onde vieram,
-  grifos conferidos no texto original e treinos com flashcards, simulados e entrevistas com nota.
+  <b>Study with your own material only.</b> Upload handouts and notes, ask questions and get answers with the page they came from,
+  highlights checked against the original text, and practice with flashcards, mock exams and graded interviews.
 </p>
 
 <p align="center">
   <a href="https://github.com/eduardomatheusok-crypto/assistente-estudo-rag/actions/workflows/ci.yml"><img src="https://github.com/eduardomatheusok-crypto/assistente-estudo-rag/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/Node.js-24-5FA04E?logo=nodedotjs&logoColor=white" alt="Node.js 24">
   <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL com pgvector">
+  <img src="https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL with pgvector">
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19">
-  <img src="https://img.shields.io/badge/Gemini-cota%20gratuita-8E75B2?logo=googlegemini&logoColor=white" alt="Gemini na cota gratuita">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-green" alt="Licença MIT"></a>
+  <img src="https://img.shields.io/badge/Gemini-free%20tier-8E75B2?logo=googlegemini&logoColor=white" alt="Gemini free tier">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
 </p>
 
 <p align="center">
-  <a href="#-começo-rápido">Começo rápido</a> ·
-  <a href="#-o-que-ele-faz">O que ele faz</a> ·
-  <a href="#-como-usar">Como usar</a> ·
-  <a href="#-como-funciona-por-dentro">Como funciona</a> ·
-  <a href="#-quanto-custa-cada-ação">Custo</a> ·
-  <a href="#-referência">Referência</a>
+  <a href="#-quick-start">Quick start</a> ·
+  <a href="#-what-it-does">What it does</a> ·
+  <a href="#-how-to-use">How to use</a> ·
+  <a href="#-how-it-works">How it works</a> ·
+  <a href="#-cost-of-each-action">Cost</a> ·
+  <a href="#-reference">Reference</a>
 </p>
 
 <p align="center">
-  <img src="docs/assets/demo-citacao.gif" width="100%" alt="Clicar numa citação abre o PDF na página certa, com o trecho pintado">
+  <img src="docs/assets/demo-citacao.gif" width="100%" alt="Clicking a citation opens the PDF on the right page with the passage highlighted">
   <br>
-  <sub>Cada resposta cita a fonte. Um clique abre o PDF exatamente no trecho que comprova a resposta.</sub>
+  <sub>Every answer cites its source. One click opens the PDF exactly at the passage that backs the answer.</sub>
 </p>
 
 > [!NOTE]
-> **Pensado para quem está começando em programação e vai fazer entrevistas.** Coloque o seu material (apostilas, resumos, documentação), pergunte, grife o que importa e treine respondendo como numa entrevista de verdade. O projeto roda **de graça**, na cota gratuita do Gemini.
+> **Built for people who are starting out in programming and preparing for job interviews.** Add your material (handouts, summaries, documentation), ask questions, highlight what matters and practice answering as in a real interview. The project runs **for free** on the Gemini free tier.
+>
+> The interface, the AI prompts and the sample material are in **Brazilian Portuguese**.
 
 ---
 
-## ✨ O que ele faz
+## ✨ What it does
 
 <table>
   <tr>
     <td width="25%" valign="top">
-      <h3>📎 Respostas com fonte</h3>
-      Cada resposta cita [documento, página]. Se o material não tem a resposta, ele diz <i>"Não encontrei no material."</i> e não inventa.
+      <h3>📎 Sourced answers</h3>
+      Every answer cites [document, page]. If the material does not contain the answer, it says <i>"Não encontrei no material."</i> ("I didn't find it in the material") and does not make anything up.
     </td>
     <td width="25%" valign="top">
-      <h3>🖍️ Grifos conferidos</h3>
-      Definições, exemplos, datas ou um critério seu. Todo grifo precisa existir <b>literalmente</b> no texto; o que não existir é descartado.
+      <h3>🖍️ Verified highlights</h3>
+      Definitions, examples, dates or a criterion of your own. Every highlight must exist <b>verbatim</b> in the text; anything that does not is discarded.
     </td>
     <td width="25%" valign="top">
-      <h3>🎤 Treino de entrevista</h3>
-      Perguntas abertas sobre o seu material, com nota por critério, o que faltou e uma resposta-modelo.
+      <h3>🎤 Interview practice</h3>
+      Open questions about your material, with a score per criterion, what was missing and a model answer.
     </td>
     <td width="25%" valign="top">
-      <h3>💸 Custo zero</h3>
-      Usa a cota gratuita do Gemini, com limite de pedidos por minuto para ela não acabar no meio do estudo.
+      <h3>💸 Zero cost</h3>
+      Runs on the Gemini free tier, with a per-minute request limit so the quota does not run out in the middle of a study session.
     </td>
   </tr>
 </table>
 
-### 🎤 Simulação de entrevista
+### 🎤 Mock interview
 
-Responda no formato **Livre**, **Guiado** (definição → exemplo → por que importa) ou **STAR**. A avaliação mostra a nota geral, as notas de precisão, estrutura, clareza e exemplo, o que faltou e uma resposta-modelo tirada do material.
+Answer in **Free**, **Guided** (definition → example → why it matters) or **STAR** format. The evaluation shows the overall score, scores for precision, structure, clarity and example, what was missing, and a model answer taken from the material.
 
-<p align="center"><img src="docs/assets/entrevista.png" width="100%" alt="Simulação de entrevista com a nota por critério e a resposta-modelo"></p>
+<p align="center"><img src="docs/assets/entrevista.png" width="100%" alt="Mock interview with scores per criterion and the model answer"></p>
 
 <table>
   <tr>
     <td width="50%" valign="top">
       <h3>🃏 Flashcards</h3>
-      Clique para virar, marque <b>Acertei</b> ou <b>Errei</b>: o que você errou volta antes (repetição espaçada). No fim, gere mais 5, 10 ou 15 cartões, sem repetir.
+      Click to flip, then mark <b>Acertei</b> (got it) or <b>Errei</b> (missed it): the ones you missed come back sooner (spaced repetition). At the end, generate 5, 10 or 15 more cards, with no repeats.
       <br><br>
-      <img src="docs/assets/flashcards.gif" alt="Flashcard virando e sendo marcado como acertei">
+      <img src="docs/assets/flashcards.gif" alt="A flashcard flipping and being marked as got it">
     </td>
     <td width="50%" valign="top">
-      <h3>🖍️ Grifos por critério</h3>
-      Cada critério ganha uma cor no PDF, e cada grifo vem com a justificativa. Clique num grifo da lista para ir até ele.
+      <h3>🖍️ Highlights by criterion</h3>
+      Each criterion gets its own color on the PDF, and each highlight comes with a justification. Click a highlight in the list to jump to it.
       <br><br>
-      <img src="docs/assets/grifos.png" alt="PDF com grifos coloridos e a lista de grifos com justificativas">
+      <img src="docs/assets/grifos.png" alt="PDF with colored highlights and the list of highlights with justifications">
     </td>
   </tr>
   <tr>
     <td colspan="2" valign="top">
-      <h3>📊 Tela inicial do caderno</h3>
-      Perguntas respondidas, grifos, flashcards revisados, média nas simulações, a atividade recente e os acertos por assunto. Clicar numa pergunta antiga abre o trecho citado na resposta.
+      <h3>📊 Notebook home</h3>
+      Questions answered, highlights, flashcards reviewed, mock exam average, recent activity and accuracy by topic. Clicking an earlier question opens the passage cited in its answer.
       <br><br>
-      <img src="docs/assets/caderno.png" alt="Tela inicial do caderno com números de estudo e atividade recente">
+      <img src="docs/assets/caderno.png" alt="Notebook home screen with study numbers and recent activity">
     </td>
   </tr>
 </table>
 
-<sub>As imagens mostram respostas reais do Gemini sobre o <a href="docs/exemplo/guia-entrevista-dev.pdf">guia de exemplo</a> que vem no projeto.</sub>
+<sub>The screenshots show real Gemini answers about the <a href="docs/exemplo/guia-entrevista-dev.pdf">sample guide</a> that ships with the project (in Portuguese).</sub>
 
 ---
 
-## 🚀 Começo rápido
+## 🚀 Quick start
 
-**Você vai precisar de:** [Node.js 24+](https://nodejs.org), [Docker Desktop](https://www.docker.com/) e uma [chave gratuita do Gemini](https://aistudio.google.com/apikey).
+**You will need:** [Node.js 24+](https://nodejs.org), [Docker Desktop](https://www.docker.com/) and a [free Gemini API key](https://aistudio.google.com/apikey).
 
 ```bash
-# 1. Banco de dados (PostgreSQL + pgvector), na raiz do projeto
+# 1. Database (PostgreSQL + pgvector), from the project root
 docker compose up -d
 
-# 2. Backend: copie a configuração e coloque a sua chave em GEMINI_API_KEY
+# 2. Backend: copy the config and put your key in GEMINI_API_KEY
 cd backend
 cp .env.example .env
 npm install
 npm run dev
 
-# 3. Interface, em outro terminal
+# 3. Interface, in another terminal
 cd frontend
 npm install
 npm run dev
 ```
 
-Abra **<http://localhost:5173>**, crie um caderno e envie o [`docs/exemplo/guia-entrevista-dev.pdf`](docs/exemplo/guia-entrevista-dev.pdf) para testar.
+Open **<http://localhost:5173>**, create a notebook and upload [`docs/exemplo/guia-entrevista-dev.pdf`](docs/exemplo/guia-entrevista-dev.pdf) to try it out.
 
 > [!TIP]
-> Nas próximas vezes, basta `docker compose up -d` e `npm run dev` no `backend/` e no `frontend/`. As tabelas do banco são criadas sozinhas na primeira execução.
+> Next time, just run `docker compose up -d` and `npm run dev` in `backend/` and `frontend/`. The database tables are created automatically on the first run.
 
 > [!IMPORTANT]
-> A API não tem login. Por isso ela só aceita conexões **deste computador** (`HOST=127.0.0.1`). Não troque para `0.0.0.0` numa rede que você não controla: qualquer pessoa conectada a ela poderia usar a sua cota do Gemini.
+> The API has no login. That is why it only accepts connections from **this computer** (`HOST=127.0.0.1`). Do not change it to `0.0.0.0` on a network you do not control: anyone on it could use your Gemini quota.
 
 ---
 
-## 📖 Como usar
+## 📖 How to use
 
-A tela tem três áreas: **cadernos e documentos** à esquerda, o **documento** no centro e, à direita, as abas **Perguntas** e **Grifos**. A barra da esquerda recolhe no **⟨**.
+The screen has three areas: **notebooks and documents** on the left, the **document** in the middle and, on the right, the **Perguntas** (Questions) and **Grifos** (Highlights) tabs. The left sidebar collapses with **⟨**.
 
-| Passo | Onde | O que acontece |
+| Step | Where | What happens |
 |---|---|---|
-| **1. Crie um caderno** | **+** ao lado de *Cadernos* | Um caderno por assunto (ex.: *Entrevista Dev Júnior*). Ao clicar nele, abre a tela inicial |
-| **2. Envie documentos** | *Enviar PDF, MD ou TXT*, ou arraste | Fica **processando** e, em segundos, **pronto**. PDF escaneado (só imagem) não é aceito |
-| **3. Escolha o objetivo** | *Objetivo*, no topo da aba Perguntas | **Entrevista**: perguntas abertas com nota. **Prova**: questões de múltipla escolha |
-| **4. Pergunte** | Aba **Perguntas** | Resposta com marcadores **[S1]**. Clique para abrir o trecho no documento |
-| **5. Grife** | Aba **Grifos** | Marque os critérios e clique em **Grifar**. Dá para criar um critério seu (ex.: *Cai na entrevista*) |
-| **6. Treine** | *Treinar este assunto*, embaixo de cada resposta | **Flashcards** ou **Simulação** sobre os trechos daquela resposta |
+| **1. Create a notebook** | **+** next to *Cadernos* (Notebooks) | One notebook per subject (e.g. *Entrevista Dev Júnior*). Clicking it opens its home screen |
+| **2. Upload documents** | *Enviar PDF, MD ou TXT*, or drag and drop | Shows as **processando** (processing) and, within seconds, **pronto** (ready). Scanned PDFs (images only) are not supported |
+| **3. Choose the goal** | *Objetivo* (Goal), at the top of the Questions tab | **Entrevista** (Interview): open questions with a score. **Prova** (Exam): multiple-choice questions |
+| **4. Ask** | **Perguntas** tab | Answer with **[S1]** markers. Click one to open the passage in the document |
+| **5. Highlight** | **Grifos** tab | Pick the criteria and click **Grifar** (Highlight). You can create your own criterion (e.g. *Likely in the interview*) |
+| **6. Practice** | *Treinar este assunto* (Practice this topic), below each answer | **Flashcards** or **Simulação** (mock exam) on the passages of that answer |
 
 <details>
-<summary><b>Detalhes dos treinos</b></summary>
+<summary><b>Practice details</b></summary>
 
 <br>
 
-| Objetivo | Flashcards | Simulação |
+| Goal | Flashcards | Mock exam |
 |---|---|---|
-| **Entrevista** | Frente com uma pergunta curta para pensar | Até 5 perguntas abertas, com nota de 0 a 10 e comentário |
-| **Prova** | Frente com um termo para explicar ("DTO", "Promise") | Até 10 questões de múltipla escolha, corrigidas na hora |
+| **Interview** | Front with a short question to think about | Up to 5 open questions, scored 0 to 10 with a comment |
+| **Exam** | Front with a term to explain ("DTO", "Promise") | Up to 10 multiple-choice questions, graded instantly |
 
-**Flashcards:** clique no cartão para virar. **Errei** ou **Acertei** define quando ele volta (repetição espaçada). **‹ ›** navega, **⤨** embaralha. No fim: *Gerar mais cartões* (+5, +10 ou +15).
+**Flashcards:** click the card to flip it. **Errei** (missed it) or **Acertei** (got it) decides when it comes back (spaced repetition). **‹ ›** navigates, **⤨** shuffles. At the end: *Gerar mais cartões* (generate more cards: +5, +10 or +15).
 
-**Entrevista:** uma pergunta por vez, numa conversa.
-- **Livre:** um campo só.
-- **Guiada:** *Definição → Exemplo → Por que importa*, para perguntas sobre conceitos.
-- **STAR:** *Situação → Tarefa → Ação → Resultado*, para "conte uma vez em que…".
-- O **medidor de fala** estima quanto tempo você levaria falando (o ideal é de 45 s a 2 min), e o rascunho fica salvo no navegador.
-- **Tentar de novo** reavalia a mesma pergunta. No fim, a média por critério mostra o seu ponto a melhorar.
+**Interview:** one question at a time, as a conversation.
+- **Free:** a single field.
+- **Guided:** *Definition → Example → Why it matters*, for questions about concepts.
+- **STAR:** *Situation → Task → Action → Result*, for "tell me about a time when…".
+- The **speaking meter** estimates how long you would take to say the answer (ideally 45 s to 2 min), and the draft is saved in the browser.
+- **Tentar de novo** (try again) re-evaluates the same question. At the end, the average per criterion shows what to improve.
 
-**Prova:** escolha a alternativa e clique em **Responder**. A certa fica verde e aparece a explicação.
+**Exam:** pick an option and click **Responder** (Answer). The right one turns green and the explanation appears.
 
-Durante os treinos, o chat recolhe (**modo foco**); o botão **Chat** o traz de volta. Em toda questão, **Ver no material** abre o trecho que fundamenta a resposta.
+During practice, the chat collapses (**focus mode**); the **Chat** button brings it back. On every question, **Ver no material** (see in the material) opens the passage that backs the answer.
 
 </details>
 
 ---
 
-## 🧠 Como funciona por dentro
+## 🧠 How it works
 
-**RAG** (*Retrieval-Augmented Generation*) quer dizer: antes de a IA responder, o sistema **busca** os trechos certos do seu material e manda **só eles** para o modelo. A IA não responde com o que "sabe"; ela responde com o que está nos trechos.
+**RAG** (*Retrieval-Augmented Generation*) means that, before the AI answers, the system **retrieves** the right passages from your material and sends **only those** to the model. The AI does not answer with what it "knows"; it answers with what is in the passages.
 
 ```mermaid
 flowchart LR
-    A[📄 PDF, MD ou TXT] --> B[Extrai o texto<br>e a posição na página]
-    B --> C[Divide em trechos]
-    C --> D[Gera embeddings<br>vetores de significado]
+    A[📄 PDF, MD or TXT] --> B[Extracts the text<br>and its position on the page]
+    B --> C[Splits into chunks]
+    C --> D[Creates embeddings<br>meaning vectors]
     D --> E[(PostgreSQL<br>+ pgvector)]
 
-    Q[❓ Pergunta] --> S[Busca híbrida<br>palavras + significado]
+    Q[❓ Question] --> S[Hybrid search<br>keywords + meaning]
     E --> S
-    S --> L[Gemini responde<br>em JSON, só com os trechos]
-    L --> V{A citação existe<br>no texto original?}
-    V -- sim --> R[✅ Resposta com<br>documento e página]
-    V -- não --> X[🗑️ Descartada]
+    S --> L[Gemini answers<br>in JSON, using only the chunks]
+    L --> V{Does the citation exist<br>in the original text?}
+    V -- yes --> R[✅ Answer with<br>document and page]
+    V -- no --> X[🗑️ Discarded]
 ```
 
-- **Busca híbrida:** junta a busca por palavras (em português, ignorando acentos) com a busca por significado. As duas listas são combinadas pela posição de cada trecho (*Reciprocal Rank Fusion*). Assim, a busca acha tanto "rebase" escrito igual quanto "reescrever o histórico" dito de outro jeito.
-- **Nada inventado:** citações, grifos, questões e flashcards precisam apontar para um texto que existe **literalmente** no documento. O código confere isso, e não a IA.
-- **Saída validada:** o Gemini responde em JSON, conferido por um schema (Zod). Uma resposta fora do formato é recusada.
-- **Nota da entrevista calculada pelo código:** a IA, no papel de entrevistador sênior exigente, só classifica a resposta. Ela diz quais pontos esperados foram cobertos (copiando o trecho da sua resposta que prova cada um), aponta os erros e classifica o exemplo como repetição, genérico ou caso concreto. O código confere os trechos e calcula a nota: 60% conteúdo e 40% forma. A forma nunca salva um conteúdo fraco, e um exemplo genérico nunca vale 10.
-- **Coordenadas:** cada pedaço de texto do PDF guarda a posição na página. É isso que permite pintar citações e grifos exatamente sobre o texto.
-- **Medição:** toda etapa registra o tempo, e toda chamada ao Gemini registra tokens e custo estimado.
-- **Aprendizagem ≠ consulta:** ler uma resposta não conta como saber o assunto. Só o desempenho nos treinos entra nos acertos por assunto.
+- **Hybrid search:** combines keyword search (in Portuguese, ignoring accents) with meaning-based search. The two result lists are merged by each chunk's rank (*Reciprocal Rank Fusion*). This way the search finds both "rebase" written exactly and "rewriting history" phrased differently.
+- **Nothing made up:** citations, highlights, questions and flashcards must point to text that exists **verbatim** in the document. The code checks this, not the AI.
+- **Validated output:** Gemini answers in JSON, checked against a schema (Zod). Output in the wrong format is rejected.
+- **Interview score computed by code:** the AI, acting as a demanding senior interviewer, only classifies the answer. It says which expected points were covered (copying the passage of your answer that proves each one), points out errors and classifies the example as a repetition, generic or a concrete case. The code checks the passages and computes the score: 60% content and 40% form. Good form never rescues weak content, and a generic example never scores 10.
+- **Coordinates:** every piece of text in the PDF keeps its position on the page. That is what allows citations and highlights to be painted exactly over the text.
+- **Measurement:** every step records its duration, and every Gemini call records tokens and estimated cost.
+- **Request limit:** the routes that call Gemini accept up to 20 requests per minute (`AI_RATE_LIMIT_PER_MINUTE`). Extra requests get a 429 error with the wait time, and the interface does not send the same request twice on a double click. This keeps the free quota from running out in the middle of a study session.
+- **Learning ≠ reading:** reading an answer does not count as knowing the topic. Only practice performance goes into accuracy by topic.
 
-**Stack:** TypeScript · Node.js 24 · Fastify · Zod · PostgreSQL 17 + pgvector · PDF.js · React 19 · Vite · Motion · Vitest · Gemini (REST, sem SDK) · GitHub Actions
+**Stack:** TypeScript · Node.js 24 · Fastify · Zod · PostgreSQL 17 + pgvector · PDF.js · React 19 · Vite · Motion · Vitest · Gemini (REST, no SDK) · GitHub Actions
 
 ---
 
-## 💸 Quanto custa cada ação
+## 💸 Cost of each action
 
-O projeto usa só a **cota gratuita** do Gemini, que limita os pedidos **por minuto e por dia**. Acompanhe o uso em <https://ai.dev/rate-limit>.
+The project uses only the Gemini **free tier**, which limits requests **per minute and per day**. Track your usage at <https://ai.dev/rate-limit>.
 
-| Ação | Chamadas ao Gemini |
+| Action | Gemini calls |
 |---|---|
-| Enviar um documento | 1 por lote de até 100 trechos |
-| Fazer uma pergunta | 2 (busca + resposta) |
-| Grifar | 1 por critério a cada ~6.000 caracteres |
-| Flashcards de uma resposta | 1 (0 se reaproveitar cartões ainda não revisados) |
-| Gerar mais cartões | 1 por clique |
-| Simulação de prova | 1 (0 se reaproveitar questões) |
-| Simulação de entrevista | 1 para gerar + 1 por resposta avaliada |
-| Virar cartão, Acertei/Errei, embaralhar, abrir citações | **0** |
+| Upload a document | 1 per batch of up to 100 chunks |
+| Ask a question | 2 (search + answer) |
+| Highlight | 1 per criterion for every ~6,000 characters |
+| Flashcards from an answer | 1 (0 when reusing cards not yet reviewed) |
+| Generate more cards | 1 per click |
+| Exam mock | 1 (0 when reusing questions) |
+| Interview mock | 1 to generate + 1 per evaluated answer |
+| Flip a card, got it/missed it, shuffle, open citations | **0** |
 
 > [!WARNING]
-> Na cota gratuita, o Google pode usar o conteúdo enviado para melhorar os produtos dele. Não envie documentos com dados sigilosos ou dados pessoais de outras pessoas.
+> On the free tier, Google may use the content you send to improve its products. Do not upload documents with confidential data or other people's personal data.
 
 ---
 
-## 📚 Referência
+## 📚 Reference
 
 <details>
-<summary><b>Configuração (<code>backend/.env</code>)</b></summary>
+<summary><b>Configuration (<code>backend/.env</code>)</b></summary>
 
 <br>
 
-O modelo está em `backend/.env.example`.
+The template is in `backend/.env.example`.
 
-| Variável | Padrão | O que faz |
+| Variable | Default | What it does |
 |---|---|---|
-| `GEMINI_API_KEY` | (obrigatória) | Sua chave do Gemini |
-| `DATABASE_URL` | `postgres://notebook:notebook@localhost:5433/notebook` | Banco principal |
-| `PORT` | `3333` | Porta da API |
-| `HOST` | `127.0.0.1` | Endereço em que a API escuta. O padrão aceita só este computador; `0.0.0.0` abre para a rede |
-| `AI_RATE_LIMIT_PER_MINUTE` | `20` | Pedidos por minuto às rotas que chamam o Gemini |
-| `STORAGE_DIR` | `./storage` | Pasta dos arquivos enviados (nome = hash SHA-256) |
-| `MAX_UPLOAD_MB` | `50` | Tamanho máximo de upload |
-| `CHUNK_SIZE` / `CHUNK_OVERLAP` | `1000` / `150` | Tamanho dos trechos e sobreposição, em caracteres |
-| `EMBEDDING_PROVIDER` | `gemini` | `fake` gera vetores locais (não gasta cota, mas a busca por significado deixa de funcionar de verdade) |
-| `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-2` | Modelo de embeddings |
-| `GEMINI_LLM_MODEL` | `gemini-3.5-flash-lite` | Modelo das respostas, grifos e treinos |
-| `GEMINI_THINKING_LEVEL` | `LOW` | Quanto o modelo "pensa" antes (`MINIMAL`, `LOW`, `MEDIUM`, `HIGH`) |
-| `HIGHLIGHT_BATCH_CHARS` | `6000` | Texto enviado por chamada ao grifar |
-| `TEST_DATABASE_URL` | `…/notebook_test` | Banco dos testes de integração (**apagado** a cada execução) |
-| `EVAL_DATABASE_URL` | `…/notebook_eval` | Banco das avaliações (**apagado** a cada execução) |
-| `GEMINI_JUDGE_MODEL` | `gemini-3.8-flash` | Modelo que julga as respostas na avaliação |
+| `GEMINI_API_KEY` | (required) | Your Gemini key |
+| `DATABASE_URL` | `postgres://notebook:notebook@localhost:5433/notebook` | Main database |
+| `PORT` | `3333` | API port |
+| `HOST` | `127.0.0.1` | Address the API listens on. The default accepts this computer only; `0.0.0.0` opens it to the network |
+| `AI_RATE_LIMIT_PER_MINUTE` | `20` | Requests per minute to the routes that call Gemini |
+| `STORAGE_DIR` | `./storage` | Folder for uploaded files (name = SHA-256 hash) |
+| `MAX_UPLOAD_MB` | `50` | Maximum upload size |
+| `CHUNK_SIZE` / `CHUNK_OVERLAP` | `1000` / `150` | Chunk size and overlap, in characters |
+| `EMBEDDING_PROVIDER` | `gemini` | `fake` creates local vectors (no quota used, but meaning-based search stops really working) |
+| `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-2` | Embedding model |
+| `GEMINI_LLM_MODEL` | `gemini-3.5-flash-lite` | Model for answers, highlights and practice |
+| `GEMINI_THINKING_LEVEL` | `LOW` | How much the model "thinks" first (`MINIMAL`, `LOW`, `MEDIUM`, `HIGH`) |
+| `HIGHLIGHT_BATCH_CHARS` | `6000` | Text sent per call when highlighting |
+| `TEST_DATABASE_URL` | `…/notebook_test` | Integration test database (**wiped** on every run) |
+| `EVAL_DATABASE_URL` | `…/notebook_eval` | Evaluation database (**wiped** on every run) |
+| `GEMINI_JUDGE_MODEL` | `gemini-3.8-flash` | Model that judges the answers in the evaluation |
 
 </details>
 
 <details>
-<summary><b>Testes e CI</b></summary>
+<summary><b>Tests and CI</b></summary>
 
 <br>
 
-Os testes **não usam o Gemini**: o LLM e os embeddings são simulados. Por isso não precisam de chave nem gastam cota. O [GitHub Actions](.github/workflows/ci.yml) roda tudo a cada push e pull request, com um PostgreSQL de verdade.
+The tests **do not use Gemini**: the LLM and the embeddings are simulated. So they need no key and use no quota. [GitHub Actions](.github/workflows/ci.yml) runs everything on every push and pull request, with a real PostgreSQL.
 
 ```bash
 cd backend
 npm run typecheck
-npm test                                   # unitários
-docker compose exec postgres createdb -U notebook notebook_test   # só na primeira vez
-npm run test:integration                   # integração, com PostgreSQL real
+npm test                                   # unit
+docker compose exec postgres createdb -U notebook notebook_test   # first time only
+npm run test:integration                   # integration, with real PostgreSQL
 
 cd ../frontend
 npm run typecheck
@@ -270,33 +275,33 @@ npm test
 </details>
 
 <details>
-<summary><b>Avaliação automática da IA</b></summary>
+<summary><b>Automated AI evaluation</b></summary>
 
 <br>
 
-Scripts que medem a **qualidade técnica** da IA com datasets em JSON (`backend/eval/datasets/`). Eles usam o Gemini real, então **gastam cota**. Antes da primeira execução:
+Scripts that measure the AI's **technical quality** with JSON datasets (`backend/eval/datasets/`). They use the real Gemini, so they **use quota**. Before the first run:
 
 ```bash
 docker compose exec postgres createdb -U notebook notebook_eval
 ```
 
-**Respostas (RAG):** Recall@5, precisão das citações, correção, recusa correta, taxa de alucinação, latência e custo por pergunta.
+**Answers (RAG):** Recall@5, citation precision, correctness, correct refusal, hallucination rate, latency and cost per question.
 
 ```bash
 cd backend
 npm run eval -- --dataset eval/datasets/calculo-exemplo/dataset.json --chunks 300:50 --strategies hybrid
-npm run eval -- --dataset <arquivo> --retrieval-only     # só a busca: bem mais barato
+npm run eval -- --dataset <file> --retrieval-only     # search only: much cheaper
 ```
 
-**Grifos:** precisão, revocação e F1 por critério, e quantos grifos foram inventados (e descartados).
+**Highlights:** precision, recall and F1 per criterion, and how many highlights were made up (and discarded).
 
 ```bash
 npm run eval:highlights -- --dataset eval/datasets/calculo-exemplo/highlights.json
 ```
 
-Os relatórios ficam em `backend/eval/results/`. As **métricas de aprendizagem** (acertos nos treinos) ficam separadas das técnicas, na tabela `attempts`.
+Reports are saved in `backend/eval/results/`. **Learning metrics** (practice results) are kept apart from the technical ones, in the `attempts` table.
 
-Para ver quanto cada operação custaria no plano pago:
+To see what each operation would cost on the paid tier:
 
 ```bash
 docker compose exec postgres psql -U notebook -d notebook -c "
@@ -307,47 +312,47 @@ SELECT model, operation, count(*) AS chamadas, round(sum(cost_usd)::numeric, 5) 
 </details>
 
 <details>
-<summary><b>Problemas comuns</b></summary>
+<summary><b>Troubleshooting</b></summary>
 
 <br>
 
-| Sintoma | Causa provável | Solução |
+| Symptom | Likely cause | Fix |
 |---|---|---|
-| `docker compose up` falha com *port is already allocated* | Outro serviço usa a porta 5433 | Defina `POSTGRES_HOST_PORT=5434` antes do comando e ajuste o `DATABASE_URL` |
-| Backend: *ECONNREFUSED* ou *autenticação falhou* | Docker desligado, ou conectando no Postgres errado | Ligue o Docker Desktop, rode `docker compose up -d` e confira a porta 5433 no `.env` |
-| Backend: *GEMINI_API_KEY é obrigatória* | `.env` sem a chave | Preencha `GEMINI_API_KEY` |
-| *Provedor de IA indisponível ou no limite de uso* | Cota do Gemini esgotada (429) ou modelo sobrecarregado (503) | Espere alguns minutos. A cota diária renova à meia-noite do horário do Pacífico (4h–5h em Brasília) |
-| *Muitos pedidos à IA em pouco tempo* | Mais de 20 pedidos à IA no mesmo minuto | Espere os segundos indicados |
-| Documento fica como **falhou** | PDF escaneado, protegido por senha ou corrompido | Passe o mouse sobre o documento para ver o motivo |
-| *Escolha o objetivo do caderno* ao treinar | O caderno ainda não tem objetivo | Escolha Entrevista ou Prova no topo da aba Perguntas |
-| A interface diz que não fala com o backend | O backend não está rodando | `npm run dev` em `backend/` |
+| `docker compose up` fails with *port is already allocated* | Another service is using port 5433 | Set `POSTGRES_HOST_PORT=5434` before the command and adjust `DATABASE_URL` |
+| Backend: *ECONNREFUSED* or *authentication failed* | Docker is off, or connecting to the wrong Postgres | Start Docker Desktop, run `docker compose up -d` and check port 5433 in `.env` |
+| Backend: *GEMINI_API_KEY é obrigatória* (is required) | `.env` without the key | Fill in `GEMINI_API_KEY` |
+| *Provedor de IA indisponível ou no limite de uso* (AI provider unavailable or at its limit) | Gemini quota used up (429) or model overloaded (503) | Wait a few minutes. The daily quota resets at midnight Pacific time |
+| *Muitos pedidos à IA em pouco tempo* (too many AI requests) | More than 20 AI requests in the same minute | Wait the number of seconds shown |
+| Document shows as **falhou** (failed) | Scanned, password-protected or corrupted PDF | Hover over the document to see why |
+| *Escolha o objetivo do caderno* (choose the notebook goal) when practicing | The notebook has no goal yet | Pick Entrevista or Prova at the top of the Questions tab |
+| The interface says it cannot reach the backend | The backend is not running | `npm run dev` in `backend/` |
 
 </details>
 
 <details>
-<summary><b>Estrutura do código</b></summary>
+<summary><b>Code structure</b></summary>
 
 <br>
 
 ```
 backend/
   src/
-    routes/         # HTTP: valida a entrada e chama os serviços
-    services/       # regras e orquestração
-    repositories/   # todo o SQL
-    providers/      # Gemini (LLM e embeddings), armazenamento de arquivos
-    domain/         # funções puras: chunking, busca, validação, grifos, prática
-    http/           # limite de pedidos às rotas de IA
-    db/migrations/  # arquivos .sql numerados, aplicados ao iniciar
-  eval/             # avaliação automática e datasets
-  tests/            # unitários e de integração
+    routes/         # HTTP: validates input and calls the services
+    services/       # rules and orchestration
+    repositories/   # all the SQL
+    providers/      # Gemini (LLM and embeddings), file storage
+    domain/         # pure functions: chunking, search, validation, highlights, practice
+    http/           # request limit for the AI routes
+    db/migrations/  # numbered .sql files, applied on startup
+  eval/             # automated evaluation and datasets
+  tests/            # unit and integration
 frontend/
   src/
-    components/     # telas: chat, grifos, visualizador, prática
-    lib/            # funções puras (coordenadas, marcações, embaralhar)
+    components/     # screens: chat, highlights, viewer, practice
+    lib/            # pure functions (coordinates, marks, shuffle)
 docs/
-  assets/           # imagens deste README
-  exemplo/          # PDF de exemplo para testar
+  assets/           # images for this README
+  exemplo/          # sample PDF to try out
 ```
 
 </details>
@@ -357,16 +362,16 @@ docs/
 
 <br>
 
-Base: `http://localhost:3333` (pela interface, `/api/...`).
+Base: `http://localhost:3333` (through the interface, `/api/...`).
 
-| Área | Endpoints |
+| Area | Endpoints |
 |---|---|
-| Cadernos | `GET/POST /notebooks` · `GET/PATCH/DELETE /notebooks/:id` |
-| Documentos | `GET/POST /notebooks/:id/documents` · `GET/DELETE /documents/:id` · `GET /documents/:id/file` · `GET /documents/:id/pages/:n` · `GET /documents/:id/chunks` |
-| Busca | `POST /notebooks/:id/search` `{ query, strategy: hybrid\|vector\|lexical, k }` |
-| Perguntas | `GET/POST /notebooks/:id/questions` · `GET /questions/:id` · `GET /citations/:id` |
-| Grifos | `GET/POST /notebooks/:id/highlight-criteria` · `DELETE /highlight-criteria/:id` · `POST /documents/:id/highlight-runs` · `GET /highlight-runs/:id` · `GET /documents/:id/highlights` |
-| Prática | `GET /notebooks/:id/overview` · `GET/PUT /notebooks/:id/profile` · `POST /notebooks/:id/practice-sessions` · `GET /practice-sessions/:id` · `POST /practice-sessions/:id/answers` · `POST /practice-sessions/:id/reviews` · `POST /practice-sessions/:id/more` · `POST /practice-sessions/:id/finish` · `GET /practice-items/:id/source` · `GET /notebooks/:id/priorities` |
+| Notebooks | `GET/POST /notebooks` · `GET/PATCH/DELETE /notebooks/:id` |
+| Documents | `GET/POST /notebooks/:id/documents` · `GET/DELETE /documents/:id` · `GET /documents/:id/file` · `GET /documents/:id/pages/:n` · `GET /documents/:id/chunks` |
+| Search | `POST /notebooks/:id/search` `{ query, strategy: hybrid\|vector\|lexical, k }` |
+| Questions | `GET/POST /notebooks/:id/questions` · `GET /questions/:id` · `GET /citations/:id` |
+| Highlights | `GET/POST /notebooks/:id/highlight-criteria` · `DELETE /highlight-criteria/:id` · `POST /documents/:id/highlight-runs` · `GET /highlight-runs/:id` · `GET /documents/:id/highlights` |
+| Practice | `GET /notebooks/:id/overview` · `GET/PUT /notebooks/:id/profile` · `POST /notebooks/:id/practice-sessions` · `GET /practice-sessions/:id` · `POST /practice-sessions/:id/answers` · `POST /practice-sessions/:id/reviews` · `POST /practice-sessions/:id/more` · `POST /practice-sessions/:id/finish` · `GET /practice-items/:id/source` · `GET /notebooks/:id/priorities` |
 
 ```bash
 curl -X POST localhost:3333/notebooks -H 'content-type: application/json' -d '{"name": "Entrevista Dev Júnior"}'
@@ -382,5 +387,5 @@ curl -X POST localhost:3333/notebooks/<id>/questions -H 'content-type: applicati
 <p align="center">
   <img src="docs/assets/logo.svg" width="32" alt="">
   <br>
-  <sub>Licença <a href="LICENSE">MIT</a> · Feito por Eduardo Matheus · O guia de exemplo foi escrito para este projeto</sub>
+  <sub><a href="LICENSE">MIT</a> license · Made by Eduardo Matheus · The sample guide was written for this project</sub>
 </p>
